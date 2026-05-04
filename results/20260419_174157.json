@@ -1,0 +1,11 @@
+{
+    "status": "success",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+",
+    "mode": "local",
+    "kem_success": true,
+    "execution_time_ms": 1.63,
+    "battery": 77.35,
+    "cpu": 45.82,
+    "memory": 34.9
+}
