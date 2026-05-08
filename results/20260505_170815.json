@@ -1,0 +1,9 @@
+{
+    "status": "success",
+    "execution_time_ms": 22.74,
+    "kem_success": true,
+    "battery": 77.37,
+    "cpu": 64.05,
+    "memory": 43.17,
+    "engine": "Compare Both"
+}

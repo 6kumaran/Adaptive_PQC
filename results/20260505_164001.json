@@ -1,0 +1,12 @@
+{
+    "status": "success",
+    "kem_used": "ML-KEM-768",
+    "signature_used": "Falcon512",
+    "mode": "edge",
+    "kem_success": true,
+    "execution_time_ms": 14.38,
+    "battery": 67.48,
+    "cpu": 36.93,
+    "memory": 61.86,
+    "engine": "Rule-Based"
+}

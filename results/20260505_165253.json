@@ -1,0 +1,12 @@
+{
+    "status": "success",
+    "kem_used": "FrodoKEM-640-AES",
+    "signature_used": "Falcon512",
+    "mode": "edge",
+    "kem_success": true,
+    "execution_time_ms": 4.34,
+    "battery": 97.53,
+    "cpu": 19.72,
+    "memory": 88.78,
+    "engine": "ML-Based"
+}

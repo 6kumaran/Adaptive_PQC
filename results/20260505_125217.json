@@ -1,0 +1,12 @@
+{
+    "status": "success",
+    "kem_used": "ML-KEM-512",
+    "signature_used": "Dilithium2",
+    "mode": "edge",
+    "kem_success": true,
+    "execution_time_ms": 3.51,
+    "battery": 54.38,
+    "cpu": 76.59,
+    "memory": 33.79,
+    "engine": "Rule-Based"
+}

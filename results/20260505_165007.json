@@ -1,0 +1,12 @@
+{
+    "status": "success",
+    "kem_used": "FrodoKEM-640-AES",
+    "signature_used": "Dilithium2",
+    "mode": "edge",
+    "kem_success": true,
+    "execution_time_ms": 3.52,
+    "battery": 68.11,
+    "cpu": 15.38,
+    "memory": 84.54,
+    "engine": "ML-Based"
+}

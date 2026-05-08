@@ -1,0 +1,72 @@
+[
+    {
+        "device_id": 0,
+        "execution": "edge",
+        "kem": "ML-KEM-512",
+        "signature": "Dilithium2",
+        "time_ms": 12.36
+    },
+    {
+        "device_id": 1,
+        "execution": "edge",
+        "kem": "ML-KEM-768",
+        "signature": "Falcon512",
+        "time_ms": 3.9
+    },
+    {
+        "device_id": 2,
+        "execution": "local",
+        "kem": "ML-KEM-1024",
+        "signature": "SPHINCS+",
+        "time_ms": 0.33
+    },
+    {
+        "device_id": 3,
+        "execution": "edge",
+        "kem": "FrodoKEM-640-AES",
+        "signature": "Falcon512",
+        "time_ms": 4.45
+    },
+    {
+        "device_id": 4,
+        "execution": "local",
+        "kem": "ML-KEM-1024",
+        "signature": "SPHINCS+",
+        "time_ms": 0.33
+    },
+    {
+        "device_id": 5,
+        "execution": "local",
+        "kem": "ML-KEM-1024",
+        "signature": "SPHINCS+",
+        "time_ms": 0.1
+    },
+    {
+        "device_id": 6,
+        "execution": "edge",
+        "kem": "FrodoKEM-640-AES",
+        "signature": "Falcon512",
+        "time_ms": 3.53
+    },
+    {
+        "device_id": 7,
+        "execution": "local",
+        "kem": "ML-KEM-1024",
+        "signature": "SPHINCS+",
+        "time_ms": 0.12
+    },
+    {
+        "device_id": 8,
+        "execution": "edge",
+        "kem": "ML-KEM-768",
+        "signature": "Falcon512",
+        "time_ms": 2.69
+    },
+    {
+        "device_id": 9,
+        "execution": "edge",
+        "kem": "ML-KEM-768",
+        "signature": "Falcon512",
+        "time_ms": 2.47
+    }
+]
