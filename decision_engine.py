@@ -1,13 +1,82 @@
 from iot_device import IoTDevice
 import time
+import random
 
+def assess_threat(threat_profile="AUTO"):
 
-def decide_execution(device_status):
+    import random
+
+    if threat_profile == "AUTO":
+        threat_profile = random.choice(
+            ["SAFE", "LOW", "MEDIUM", "HIGH"]
+        )
+
+    indicators = []
+
+    if threat_profile == "SAFE":
+
+        threat_score = random.randint(0, 25)
+
+        if random.random() < 0.3:
+            indicators.append(
+                "Minor Network Fluctuation"
+            )
+
+    elif threat_profile == "LOW":
+
+        threat_score = random.randint(26, 50)
+
+        indicators.append(
+            "Failed Authentication Attempts"
+        )
+
+        if random.random() < 0.5:
+            indicators.append(
+                "Network Anomaly"
+            )
+
+    elif threat_profile == "MEDIUM":
+
+        threat_score = random.randint(51, 75)
+
+        indicators.extend([
+            "Multiple Failed Authentication Attempts",
+            "Network Anomaly"
+        ])
+
+        if random.random() < 0.7:
+            indicators.append(
+                "Signature Verification Failure"
+            )
+
+    else:  # HIGH
+
+        threat_score = random.randint(76, 100)
+
+        indicators.extend([
+            "Replay Attack Indicator",
+            "Signature Verification Failure",
+            "Suspicious Edge Node",
+            "Multiple Failed Authentication Attempts"
+        ])
+
+    return {
+        "threat_profile": threat_profile,
+        "threat_score": threat_score,
+        "threat_level": threat_profile,
+        "indicators": indicators
+    }
+
+def decide_execution(device_status,threat_profile="AUTO"):
 
     battery = device_status["battery"]
     cpu = device_status["cpu"]
     memory = device_status["memory"]
     network = device_status["network"]
+    threat_data = assess_threat(
+    threat_profile
+    )
+    threat_override = False
 
     score = 0
 
@@ -52,6 +121,30 @@ def decide_execution(device_status):
         mode = "balanced"
     else:
         mode = "performance"
+    
+    # ------------------------------
+    # Threat-Aware Security Override
+    # ------------------------------
+
+    threat_level = threat_data["threat_level"]
+
+    original_mode = mode
+
+    if threat_level == "LOW":
+
+        if mode == "performance":
+            mode = "balanced"
+
+    elif threat_level == "MEDIUM":
+
+        mode = "high_security"
+
+    elif threat_level == "HIGH":
+
+        mode = "high_security"
+
+    if original_mode != mode:
+        threat_override = True
 
     # ------------------------------
     # KEM Selection
@@ -66,6 +159,13 @@ def decide_execution(device_status):
     # Use Frodo if memory is high but CPU moderate
     if memory > 70 and cpu < 60:
         kem = "FrodoKEM-640-AES"
+    
+    if threat_level == "HIGH":
+
+        kem = "ML-KEM-1024"
+        signature = "SPHINCS+-SHAKE-128f-simple"
+
+        threat_override = True
 
     # ------------------------------
     # Signature Selection
@@ -73,16 +173,30 @@ def decide_execution(device_status):
     if mode == "performance":
         signature = "Dilithium2"
     elif mode == "balanced":
-        signature = "Falcon512"
+        signature = "Dilithium3"
     else:
-        signature = "SPHINCS+"
+        signature = "SPHINCS+-SHAKE-128f-simple"
 
     return {
-        "score": score,
-        "execution": execution,
-        "mode": mode,
-        "kem": kem,
-        "signature": signature
+    "score": score,
+    "execution": execution,
+    "mode": mode,
+    "kem": kem,
+    "signature": signature,
+
+    "threat_override": threat_override,
+
+    "threat_profile":
+        threat_data["threat_profile"],
+
+    "threat_score":
+        threat_data["threat_score"],
+
+    "threat_level":
+        threat_data["threat_level"],
+
+    "threat_indicators":
+        threat_data["indicators"]
     }
 
 

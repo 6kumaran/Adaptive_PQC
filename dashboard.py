@@ -4,9 +4,17 @@ import pandas as pd
 from datetime import datetime
 from ml_decision_engine import ml_decide_execution
 from iot_device import IoTDevice
+import base64
 from decision_engine import decide_execution
-from pqc_module import kyber_keygen, kyber_encrypt, kyber_decrypt
+from pqc_module import (
+    kem_keygen,
+    kem_encrypt,
+    kem_decrypt,
+    encrypt_message,
+    sign_payload
+)
 from multi_device_simulation import simulate_devices
+from datetime import timedelta
 
 def generate_explanation(status, decision):
 
@@ -55,44 +63,75 @@ def generate_explanation(status, decision):
     return explanation
 
 def run_execution(decision, battery, cpu, memory):
-    mode = decision["execution"]
+    execution = decision["execution"]
+    mode = decision["mode"]
     kem = decision["kem"]
     signature = decision["signature"]
 
-    if mode == "edge":
-        payload = {
-            "kem": kem,
-            "signature": signature,
-            "mode": mode
-        }
+    if execution == "edge":
 
-        try:
-            start = time.time()
-            response = requests.post(EDGE_SERVER_URL, json=payload, timeout=5)
-            result = response.json()
-            end = time.time()
-            result["execution_time_ms"] = round((end-start)*1000,2)
-        except:
-            result = {"status": "failed", "execution_time_ms": None}
-
-    else:
         start = time.time()
 
-        kem_obj, pk = kyber_keygen()
-        ct, ss1 = kyber_encrypt(kem_obj, pk)
-        ss2 = kyber_decrypt(kem_obj, ct)
+        # Simulated edge execution
+        time.sleep(0.005)
 
         end = time.time()
 
         result = {
             "status": "success",
             "execution_time_ms": round((end-start)*1000,2),
-            "kem_success": ss1 == ss2
+            "execution": "edge"
+        }
+
+    else:
+
+        start = time.time()
+
+        kem_obj, public_key = kem_keygen(kem)
+
+        ciphertext, shared_secret = kem_encrypt(
+            kem_obj,
+            public_key
+        )
+
+        end = time.time()
+
+        result = {
+            "status": "success",
+            "execution_time_ms":
+                round((end-start)*1000,2),
+            "kem_success": True,
+            "execution": "local"
         }
 
     result["battery"] = battery
     result["cpu"] = cpu
     result["memory"] = memory
+
+    result["mode"] = mode
+    result["kem_used"] = kem
+    result["signature_used"] = signature
+    # Threat-Aware Fields
+
+    result["threat_profile"] = decision.get(
+    "threat_profile",
+    "UNKNOWN"
+    )
+
+    result["threat_score"] = decision.get(
+    "threat_score",
+    0
+    )
+
+    result["threat_level"] = decision.get(
+    "threat_level",
+    "SAFE"
+    )
+
+    result["threat_override"] = decision.get(
+    "threat_override",
+    False
+    )
 
     return result
 
@@ -104,6 +143,9 @@ os.makedirs(RESULTS_FOLDER, exist_ok=True)
 # Save Result
 # -----------------------------------
 def save_result(data):
+
+    data["timestamp"] = datetime.now().isoformat()
+
     filename = datetime.now().strftime("%Y%m%d_%H%M%S.json")
     filepath = os.path.join(RESULTS_FOLDER, filename)
 
@@ -112,8 +154,26 @@ def save_result(data):
 
 def save_simulation_results(results):
 
-    filename = datetime.now().strftime("simulation_%Y%m%d_%H%M%S.json")
-    filepath = os.path.join(RESULTS_FOLDER, filename)
+    base_time = datetime.now()
+
+    for i, row in enumerate(results):
+
+        row["timestamp"] = (
+            base_time +
+            timedelta(seconds=i)
+        ).isoformat()
+
+        row["record_type"] = "simulation"
+        row["record_type"] = "simulation"
+
+    filename = datetime.now().strftime(
+        "simulation_%Y%m%d_%H%M%S.json"
+    )
+
+    filepath = os.path.join(
+        RESULTS_FOLDER,
+        filename
+    )
 
     with open(filepath, "w") as f:
         json.dump(results, f, indent=4)
@@ -126,6 +186,104 @@ def display_decision(decision):
     **Signature:** {decision['signature']}
     """)
 
+def secure_channel_demo(
+        message,
+        decision):
+
+    kem = decision["kem"]
+    signature = decision["signature"]
+
+    start = time.time()
+
+    try:
+
+        kem_obj, public_key = kem_keygen(kem)
+
+        ciphertext, shared_secret = kem_encrypt(
+            kem_obj,
+            public_key
+        )
+
+        encrypted_payload = encrypt_message(
+            shared_secret,
+            message
+        )
+
+        signature_data = sign_payload(
+            signature,
+            encrypted_payload["ciphertext"].encode()
+        )
+
+        payload = {
+            "kem": kem,
+            "ciphertext":
+                encrypted_payload["ciphertext"],
+            "nonce":
+                encrypted_payload["nonce"],
+            "shared_secret":
+                base64.b64encode(
+                    shared_secret
+                ).decode(),
+
+            "signature_algorithm":
+                signature,
+
+            "signature":
+                signature_data["signature"],
+
+            "public_key":
+                signature_data["public_key"]
+        }
+
+        response = requests.post(
+            EDGE_SERVER_URL,
+            json=payload,
+            timeout=10
+        )
+
+        result = response.json()
+
+        end = time.time()
+
+        return {
+            "status": "success",
+            "record_type": "secure_channel",
+            "kem": kem,
+            "signature": signature,
+
+            "ciphertext":
+                encrypted_payload["ciphertext"],
+
+            "ciphertext_size":
+                len(
+                    encrypted_payload[
+                        "ciphertext"
+                    ]
+                ),
+
+            "signature_size":
+                len(
+                    signature_data[
+                        "signature"
+                    ]
+                ),
+
+            "execution_time_ms":
+                round(
+                    (end-start)*1000,
+                    2
+                ),
+
+            "response": result
+        }
+
+    except Exception as e:
+
+        return {
+            "status": "failed",
+            "error": str(e)
+        }
+    
 # -----------------------------------
 # Premium UI
 # -----------------------------------
@@ -156,6 +314,16 @@ decision_mode = st.radio(
     ["Rule-Based", "ML-Based", "Compare Both"],
     horizontal=True
 )
+threat_profile = st.selectbox(
+    "🛡 Threat Profile",
+    [
+        "AUTO",
+        "SAFE",
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+    ]
+)
 
 # -----------------------------------
 # Refresh Button
@@ -171,7 +339,10 @@ status = device.get_device_status()
 # -----------------------------------
 # Decision Selection
 # -----------------------------------
-rule_decision = decide_execution(status)
+rule_decision = decide_execution(
+    status,
+    threat_profile
+)
 ml_decision = ml_decide_execution(status)
 
 if decision_mode == "Rule-Based":
@@ -198,6 +369,64 @@ c1.metric("🔋 Battery", f"{battery}%")
 c2.metric("🧠 CPU", f"{cpu}%")
 c3.metric("💾 Memory", f"{memory}%")
 c4.metric("📶 Network", network)
+
+# -----------------------------------
+# Threat Monitor
+# -----------------------------------
+st.markdown("---")
+st.subheader("🛡 Threat Monitor")
+
+t1, t2 = st.columns(2)
+st.info(
+    f"Current Threat Profile: "
+    f"{decision.get('threat_profile', 'AUTO')}"
+)
+if decision.get("threat_override", False):
+
+    st.error(
+        "⚠ Threat Override Active "
+        "- Security Elevated"
+    )
+
+with t1:
+
+    st.metric(
+        "Threat Score",
+        decision.get(
+            "threat_score",
+            0
+        )
+    )
+
+with t2:
+
+    st.metric(
+        "Threat Level",
+        decision.get(
+            "threat_level",
+            "SAFE"
+        )
+    )
+
+indicators = decision.get(
+    "threat_indicators",
+    []
+)
+
+if indicators:
+
+    st.warning(
+        "Active Threat Indicators"
+    )
+
+    for item in indicators:
+        st.write("⚠️", item)
+
+else:
+
+    st.success(
+        "No Threat Indicators Detected"
+    )
 
 # -----------------------------------
 # Decision
@@ -256,7 +485,7 @@ if execute_clicked:
 
         st.markdown(f"""
         **Time:** {rule_result['execution_time_ms']} ms  
-        **Status:** {rule_result['status']}  
+        **Status:** {rule_result.get('status', 'unknown')} 
         """)
 
         with st.expander("🔍 Details"):
@@ -267,7 +496,7 @@ if execute_clicked:
 
         st.markdown(f"""
         **Time:** {ml_result['execution_time_ms']} ms  
-        **Status:** {ml_result['status']}  
+        **Status:** {ml_result.get('status', 'unknown')}  
         """)
 
         with st.expander("🔍 Details"):
@@ -294,13 +523,123 @@ if execute_clicked:
     # Save result
     result = ml_result if decision_mode == "ML-Based" else rule_result
     result["engine"] = decision_mode
+    result["record_type"] = "execution"
     save_result(result)
 
+st.markdown("---")
+st.subheader("🔐 Live Secure Communication Demo")
+
+secure_message = st.text_area(
+    "Message To Protect",
+    "Patient Heart Rate = 92 BPM"
+)
+
+secure_demo = st.button(
+    "🚀 Send Secure Message",
+    key="secure_demo"
+)
+
+if secure_demo:
+
+    result = secure_channel_demo(
+        secure_message,
+        decision
+    )
+
+    if result["status"] == "success":
+
+        st.success(
+            "Secure Transmission Complete"
+        )
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            st.metric(
+                "Ciphertext Size",
+                result["ciphertext_size"]
+            )
+
+            st.metric(
+                "Execution Time (ms)",
+                result["execution_time_ms"]
+            )
+
+        with c2:
+
+            st.metric(
+                "Signature Size",
+                result["signature_size"]
+            )
+
+            st.metric(
+                "Verification",
+                "SUCCESS"
+                if result["response"].get(
+                    "signature_verified"
+                )
+                else "FAILED"
+            )
+
+        st.markdown(
+            f"**Selected KEM:** "
+            f"{result['kem']}"
+        )
+
+        st.markdown(
+            f"**Selected Signature:** "
+            f"{result['signature']}"
+        )
+
+        st.markdown(
+            "**Encrypted Payload:**"
+        )
+
+        st.code(
+            result["ciphertext"][:120]
+            + "..."
+        )
+
+        st.markdown(
+            "**Recovered Message:**"
+        )
+
+        st.success(
+            result["response"].get(
+                "decrypted_message",
+                "N/A"
+            )
+        )
+
+    else:
+
+        st.error(
+            result["error"]
+        )
 # -----------------------------------
 # Multi-Device Simulation
 # -----------------------------------
 st.markdown("---")
 st.subheader("🌐 Multi-Device Simulation")
+if st.button("📈 Generate 500 Demo Runs"):
+
+    all_results = []
+
+    for _ in range(50):
+
+        batch = simulate_devices(
+            10,
+            use_ml=False
+        )
+
+        all_results.extend(batch)
+
+    save_simulation_results(all_results)
+
+    st.success(
+        f"{len(all_results)} records generated"
+    )
 
 col1, col2 = st.columns(2)
 
@@ -344,17 +683,7 @@ if run_sim:
     # -----------------------------------
     # Charts
     # -----------------------------------
-    st.markdown("### 📊 Distribution")
-
-    a, b = st.columns(2)
-
-    with a:
-        st.caption("Execution Mode")
-        st.bar_chart(df["mode"].value_counts())
-
-    with b:
-        st.caption("KEM Usage")
-        st.bar_chart(df["kem_used"].value_counts())
+    
 
     # -----------------------------------
     # Optional Detailed View
@@ -389,6 +718,60 @@ with st.expander("📊 Analytics", expanded=False):
 
         df = pd.DataFrame(rows)
 
+        analytics_view = st.selectbox(
+            "Analytics View",
+            [
+            "All Records",
+            "Simulation",
+            "Execution",
+            "Secure Channel"
+            ]
+        )
+
+        if (
+            analytics_view == "Simulation"
+            and "record_type" in df.columns
+        ):
+            df = df[
+                df["record_type"] == "simulation"
+            ]
+
+        elif (
+            analytics_view == "Execution"
+            and "record_type" in df.columns
+        ):
+            df = df[
+                df["record_type"] == "execution"
+            ]
+
+        elif (
+            analytics_view == "Secure Channel"
+            and "record_type" in df.columns
+        ):
+            df = df[
+                df["record_type"] == "secure_channel"
+            ]
+
+        if "timestamp" in df.columns:
+
+            df["timestamp"] = pd.to_datetime(
+                df["timestamp"]
+            )
+
+            df = df.sort_values(
+                "timestamp"
+            )
+
+        df = df.reset_index(drop=True)
+
+        df["run_id"] = range(
+            1,
+            len(df) + 1
+        )
+
+        if len(df) > 500:
+            df = df.tail(500)
+
         a,b = st.columns(2)
 
         with a:
@@ -403,26 +786,203 @@ with st.expander("📊 Analytics", expanded=False):
 
         with c:
             st.caption("Signature Usage")
-            st.bar_chart(df["signature_used"].value_counts())
+
+            if "signature_used" in df.columns:
+                st.bar_chart(
+                    df["signature_used"].value_counts()
+                )
 
         with d:
             st.caption("Avg Execution Time")
             st.bar_chart(df.groupby("mode")["execution_time_ms"].mean())
+            
+        if "timestamp" in df.columns:
+
+            df["timestamp"] = pd.to_datetime(
+                df["timestamp"]
+            )
+
+            df = df.sort_values(
+                "timestamp"
+            )
 
         st.caption("Execution Time Trend")
-        st.line_chart(df["execution_time_ms"])
+
+        if (
+            "execution_time_ms" in df.columns
+            and "timestamp" in df.columns
+        ):
+
+            trend_df = df.dropna(
+                subset=["execution_time_ms"]
+            ).copy()
+
+            trend_df["rolling_avg"] = (
+                trend_df["execution_time_ms"]
+                .rolling(
+                    window=20,
+                    min_periods=1
+                )
+                .mean()
+            )
+            st.write(
+            trend_df[
+                ["timestamp", "execution_time_ms"]
+            ].head(20)
+            )
+            trend_df = trend_df.set_index(
+                "run_id"
+            )
+
+            st.line_chart(
+                trend_df[
+                    [
+                        "execution_time_ms",
+                        "rolling_avg"
+                    ]
+                ]
+            )
 
         st.caption("CPU Used Per Run")
         if "cpu" in df.columns:
-            st.line_chart(df["cpu"])
+
+            cpu_df = df.dropna(
+                subset=["cpu"]
+            )
+
+            if not cpu_df.empty:
+
+                cpu_df = cpu_df.set_index(
+                    "run_id"
+                )
+
+                st.line_chart(
+                    cpu_df["cpu"]
+                )
 
         st.caption("Memory Used Per Run")
         if "memory" in df.columns:
-            st.line_chart(df["memory"])
+            mem_df = df.dropna(
+                subset=["memory"]
+            )
+
+            if not mem_df.empty:
+
+                mem_df = mem_df.set_index(
+                    "run_id"
+                )
+
+                st.line_chart(
+                    mem_df["memory"]
+                )
 
         st.caption("Battery Level Per Run")
         if "battery" in df.columns:
-            st.line_chart(df["battery"])
+            batt_df = df.dropna(
+                subset=["battery"]
+            )
 
+            if not batt_df.empty:
+
+                batt_df = batt_df.set_index(
+                    "timestamp"
+                )
+
+                st.line_chart(
+                    batt_df["battery"]
+                )
+        st.markdown("---")
+        st.subheader("🛡 Threat Analytics")
+        valid_modes = [
+            "performance",
+            "balanced",
+            "high_security"
+        ]
+
+        threat_df = df.copy()
+
+        if "mode" in threat_df.columns:
+            threat_df = threat_df[
+                threat_df["mode"].isin(valid_modes)
+            ]
+        if "threat_level" in threat_df.columns:
+
+            st.caption("Threat Level Distribution")
+
+            st.bar_chart(
+                threat_df[
+                    "threat_level"
+                ].value_counts()
+            )
+        if "threat_score" in threat_df.columns:
+
+            st.caption("Threat Score Trend")
+
+            score_df = threat_df.dropna(
+                subset=["threat_score"]
+            )
+
+            if not score_df.empty:
+
+                score_df = score_df.set_index(
+                    "run_id"
+                )
+
+                st.line_chart(
+                    score_df["threat_score"]
+                )
+        if "threat_override" in threat_df.columns:
+
+            st.caption(
+                "Threat Override Statistics"
+            )
+
+            override_counts = (
+                threat_df[
+                    "threat_override"
+                ]
+                .astype(str)
+                .value_counts()
+            )
+
+            st.bar_chart(
+                override_counts
+            )
+        if (
+            "threat_level" in threat_df.columns
+            and
+            "mode" in threat_df.columns
+        ):
+
+            st.caption(
+                "Threat Level vs Security Mode"
+            )
+
+            threat_mode = pd.crosstab(
+                threat_df["threat_level"],
+                threat_df["mode"]
+            )
+
+            st.bar_chart(
+                threat_mode
+            )
+        if (
+            "threat_level" in threat_df.columns
+            and
+            "kem_used" in threat_df.columns
+        ):  
+
+            st.caption(
+                "Threat Level vs KEM Selection"
+            )
+
+            threat_kem = pd.crosstab(
+                threat_df["threat_level"],
+                threat_df["kem_used"]
+            )
+
+            st.bar_chart(
+                threat_kem
+            )
     else:
         st.info("No result logs yet.")

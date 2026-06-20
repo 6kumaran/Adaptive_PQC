@@ -2,6 +2,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import time
 import oqs
+import base64
+
+from pqc_module import (
+    decrypt_message,
+    verify_payload
+)
 
 app = FastAPI()
 
@@ -11,8 +17,13 @@ app = FastAPI()
 # -----------------------------
 class OffloadRequest(BaseModel):
     kem: str
+    ciphertext: str
+    nonce: str
+    shared_secret: str
+
+    signature_algorithm: str
     signature: str
-    mode: str
+    public_key: str
 
 
 # -----------------------------
@@ -36,15 +47,51 @@ def offload_task(request: OffloadRequest):
 
     start = time.time()
 
-    kem_result = run_kem_algorithm(request.kem)
+    try:
 
-    end = time.time()
+        shared_secret = base64.b64decode(
+            request.shared_secret
+        )
+        verified = verify_payload(
+            request.signature_algorithm,
+            request.ciphertext.encode(),
+            request.signature,
+            request.public_key
+        )
 
-    return {
-        "status": "success",
-        "kem_used": request.kem,
-        "signature_used": request.signature,
-        "mode": request.mode,
-        "kem_success": kem_result,
-        "execution_time_ms": round((end - start) * 1000, 2)
-    }
+        if not verified:
+
+            return {
+                "status": "rejected",
+                "signature_verified": False,
+                "message": "Tampered Payload"
+            }
+
+        decrypted_message = decrypt_message(
+            shared_secret,
+            request.nonce,
+            request.ciphertext
+        )
+        
+        end = time.time()
+
+        return {
+            "status": "success",
+            "signature_algorithm":
+                request.signature_algorithm,
+
+            "signature_verified": True,
+
+            "decrypted_message":
+                decrypted_message,
+
+            "execution_time_ms":
+                round((end-start)*1000,2)
+        }
+
+    except Exception as e:
+
+        return {
+            "status": "failed",
+            "error": str(e)
+        }

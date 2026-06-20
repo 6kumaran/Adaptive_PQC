@@ -1,0 +1,14 @@
+{
+    "status": "success",
+    "execution_time_ms": 6.19,
+    "execution": "edge",
+    "battery": 70.26,
+    "cpu": 92.26,
+    "memory": 81.4,
+    "mode": "edge",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-06-20T09:30:22.853029"
+}

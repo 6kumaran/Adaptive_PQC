@@ -1,9 +1,0 @@
-{
-    "status": "success",
-    "execution_time_ms": 2.0,
-    "kem_success": true,
-    "battery": 48.06,
-    "cpu": 37.49,
-    "memory": 25.59,
-    "engine": "Rule-Based"
-}

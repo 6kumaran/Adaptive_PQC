@@ -1,0 +1,18 @@
+{
+    "status": "success",
+    "execution_time_ms": 5.16,
+    "execution": "edge",
+    "battery": 49.46,
+    "cpu": 85.11,
+    "memory": 54.42,
+    "mode": "edge",
+    "kem_used": "ML-KEM-512",
+    "signature_used": "Dilithium2",
+    "threat_profile": "SAFE",
+    "threat_score": 9,
+    "threat_level": "SAFE",
+    "threat_override": false,
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-06-20T09:44:33.868019"
+}

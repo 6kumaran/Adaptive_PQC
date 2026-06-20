@@ -1,0 +1,15 @@
+{
+    "status": "success",
+    "execution_time_ms": 4.65,
+    "kem_success": true,
+    "execution": "local",
+    "battery": 87.49,
+    "cpu": 21.27,
+    "memory": 21.99,
+    "mode": "local",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-06-20T09:08:50.674398"
+}

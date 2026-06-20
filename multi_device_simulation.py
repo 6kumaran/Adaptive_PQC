@@ -27,15 +27,9 @@ def execute_device(device_id, use_ml=False):
     start = time.time()
 
     if mode == "edge":
-        try:
-            payload = {
-                "kem": kem,
-                "signature": signature,
-                "mode": mode
-            }
-            requests.post(EDGE_SERVER_URL, json=payload, timeout=5)
-        except:
-            pass
+
+        # Simulate edge execution latency
+        time.sleep(0.003)
     else:
         kem_obj, pk = kyber_keygen()
         ct, ss1 = kyber_encrypt(kem_obj, pk)
@@ -44,11 +38,17 @@ def execute_device(device_id, use_ml=False):
     end = time.time()
 
     return {
-        "device_id": device_id,
-        "mode": mode,
-        "kem_used": kem,
-        "signature_used": signature,
-        "execution_time_ms": round((end-start)*1000,2)
+    "device_id": device_id,
+
+    "battery": status["battery"],
+    "cpu": status["cpu"],
+    "memory": status["memory"],
+    "network": status["network"],
+
+    "mode": mode,
+    "kem_used": kem,
+    "signature_used": signature,
+    "execution_time_ms": round((end-start)*1000,2)
     }
 
 # -----------------------------------

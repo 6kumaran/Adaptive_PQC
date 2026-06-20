@@ -56,9 +56,9 @@ def ml_decide_execution(device_status):
     if mode == "performance":
         signature = "Dilithium2"
     elif mode == "balanced":
-        signature = "Falcon512"
+        signature = "Dilithium3"
     else:
-        signature = "SPHINCS+"
+        signature = "SPHINCS+-SHAKE-128f-simple"
 
     return {
         "execution": execution,

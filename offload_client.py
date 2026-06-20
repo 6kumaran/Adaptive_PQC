@@ -3,7 +3,15 @@ import json
 import os
 import time
 from datetime import datetime
+import base64
+from pqc_module import sign_payload
 
+from pqc_module import (
+    kem_keygen,
+    kem_encrypt,
+    kem_decrypt,
+    encrypt_message
+)
 from iot_device import IoTDevice
 from decision_engine import decide_execution
 from pqc_module import kem_keygen, kem_encrypt, kem_decrypt
@@ -23,22 +31,41 @@ os.makedirs(RESULTS_FOLDER, exist_ok=True)
 # -----------------------------
 # Send Task to Edge Server
 # -----------------------------
-def send_offload_request(kem, signature, mode):
+def send_offload_request(
+        kem,
+        encrypted_payload,
+        shared_secret,
+        signature_data,
+        signature_algorithm):
+
     payload = {
         "kem": kem,
-        "signature": signature,
-        "mode": mode
+        "ciphertext": encrypted_payload["ciphertext"],
+        "nonce": encrypted_payload["nonce"],
+        "shared_secret": base64.b64encode(
+            shared_secret
+        ).decode(),
+
+        "signature_algorithm": signature_algorithm,
+        "signature": signature_data["signature"],
+        "public_key": signature_data["public_key"]
     }
 
     try:
-        response = requests.post(EDGE_SERVER_URL, json=payload)
+
+        response = requests.post(
+            EDGE_SERVER_URL,
+            json=payload
+        )
+
         return response.json()
+
     except Exception as e:
+
         return {
             "status": "failed",
             "error": str(e)
         }
-
 
 # -----------------------------
 # Save Result
@@ -73,10 +100,55 @@ def main():
 
     # Only offload if edge selected
     if mode == "edge":
-        result = send_offload_request(kem, signature, mode)
 
-        print("\n--- Edge Server Response ---")
-        print(json.dumps(result, indent=4))
+        user_message = input(
+            "\nEnter Message To Send Securely: "
+        )
+
+        kem_obj, public_key = kem_keygen(kem)
+
+        ciphertext, shared_secret = kem_encrypt(
+            kem_obj,
+            public_key
+        )
+
+        encrypted_payload = encrypt_message(
+            shared_secret,
+            user_message
+        )
+
+        signature_data = sign_payload(
+            signature,
+            encrypted_payload["ciphertext"].encode()
+        )
+       
+
+        result = send_offload_request(
+            kem,
+            encrypted_payload,
+            shared_secret,
+            signature_data,
+            signature
+        )
+
+        print("\n=== SECURE CHANNEL ===")
+
+        print("\nOriginal Message:")
+        print(user_message)
+
+        print("\nEncrypted Payload:")
+        print(
+        encrypted_payload["ciphertext"][:80]
+        + "..."
+        )
+
+        print("\nServer Response:")
+        print(
+            json.dumps(
+                result,
+                indent=4
+            )
+        )
 
         save_result(result)
         print("\nResult saved in results/ folder")

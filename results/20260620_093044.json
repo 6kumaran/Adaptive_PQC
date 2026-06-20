@@ -1,0 +1,14 @@
+{
+    "status": "success",
+    "execution_time_ms": 6.52,
+    "execution": "edge",
+    "battery": 75.98,
+    "cpu": 94.29,
+    "memory": 29.31,
+    "mode": "edge",
+    "kem_used": "ML-KEM-768",
+    "signature_used": "Dilithium3",
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-06-20T09:30:44.122191"
+}
