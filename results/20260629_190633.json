@@ -1,0 +1,13 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-06-29T19:06:33.461144",
+    "kem_used": "ML-KEM-512",
+    "signature_used": "Dilithium2",
+    "execution_time_ms": 17.71,
+    "ciphertext_size": 60,
+    "signature_size": 3228,
+    "security": {},
+    "status": "rejected",
+    "signature_verified": null
+}

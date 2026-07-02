@@ -1,0 +1,18 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-06-30T06:03:02.843767",
+    "kem_used": "FrodoKEM-640-AES",
+    "signature_used": "Dilithium3",
+    "execution_time_ms": 23.28,
+    "ciphertext_size": 60,
+    "signature_size": 4392,
+    "security": {
+        "strategy": "PQC",
+        "mode": "balanced",
+        "kem": "FrodoKEM-640-AES",
+        "signature": "Dilithium3"
+    },
+    "status": "success",
+    "signature_verified": true
+}

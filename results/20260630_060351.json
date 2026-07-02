@@ -1,0 +1,18 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-06-30T06:03:51.636215",
+    "kem_used": "ML-KEM-768",
+    "signature_used": "Dilithium3",
+    "execution_time_ms": 5.41,
+    "ciphertext_size": 60,
+    "signature_size": 4392,
+    "security": {
+        "strategy": "PQC",
+        "mode": "balanced",
+        "kem": "ML-KEM-768",
+        "signature": "Dilithium3"
+    },
+    "status": "rejected",
+    "signature_verified": false
+}

@@ -59,10 +59,14 @@ def ml_decide_execution(device_status):
         signature = "Dilithium3"
     else:
         signature = "SPHINCS+-SHAKE-128f-simple"
+    security_strategy = "PQC"
 
     return {
-        "execution": execution,
-        "mode": mode,
-        "kem": kem,
-        "signature": signature
+    "execution": execution,
+    "mode": mode,
+
+    "security_strategy": security_strategy,
+
+    "kem": kem,
+    "signature": signature
     }

@@ -1,0 +1,18 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-07-02T05:15:03.999421",
+    "kem_used": "ML-KEM-768",
+    "signature_used": "Dilithium3",
+    "execution_time_ms": 67.94,
+    "ciphertext_size": 60,
+    "signature_size": 4392,
+    "security": {
+        "strategy": "CLASSICAL",
+        "mode": "balanced",
+        "kem": "ML-KEM-768",
+        "signature": "Dilithium3"
+    },
+    "status": "success",
+    "signature_verified": true
+}

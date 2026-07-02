@@ -1,0 +1,18 @@
+{
+    "status": "success",
+    "execution_time_ms": 5.09,
+    "execution": "edge",
+    "battery": 88.88,
+    "cpu": 36.9,
+    "memory": 81.95,
+    "mode": "balanced",
+    "kem_used": "FrodoKEM-640-AES",
+    "signature_used": "Dilithium3",
+    "threat_profile": "SAFE",
+    "threat_score": 24,
+    "threat_level": "SAFE",
+    "threat_override": false,
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-06-29T17:33:03.341239"
+}

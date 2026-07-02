@@ -1,17 +1,15 @@
-import requests
 import json
 import os
 import time
 from datetime import datetime
-import base64
 from pqc_module import sign_payload
 
 from pqc_module import (
     kem_keygen,
     kem_encrypt,
-    kem_decrypt,
-    encrypt_message
+    kem_decrypt
 )
+from secure_channel import send_secure_message
 from iot_device import IoTDevice
 from decision_engine import decide_execution
 from pqc_module import kem_keygen, kem_encrypt, kem_decrypt
@@ -28,44 +26,6 @@ RESULTS_FOLDER = "results"
 os.makedirs(RESULTS_FOLDER, exist_ok=True)
 
 
-# -----------------------------
-# Send Task to Edge Server
-# -----------------------------
-def send_offload_request(
-        kem,
-        encrypted_payload,
-        shared_secret,
-        signature_data,
-        signature_algorithm):
-
-    payload = {
-        "kem": kem,
-        "ciphertext": encrypted_payload["ciphertext"],
-        "nonce": encrypted_payload["nonce"],
-        "shared_secret": base64.b64encode(
-            shared_secret
-        ).decode(),
-
-        "signature_algorithm": signature_algorithm,
-        "signature": signature_data["signature"],
-        "public_key": signature_data["public_key"]
-    }
-
-    try:
-
-        response = requests.post(
-            EDGE_SERVER_URL,
-            json=payload
-        )
-
-        return response.json()
-
-    except Exception as e:
-
-        return {
-            "status": "failed",
-            "error": str(e)
-        }
 
 # -----------------------------
 # Save Result
@@ -90,6 +50,8 @@ def main():
 
     # Use your existing decision engine
     decision = decide_execution(status)
+    print(decision)
+    security_strategy = decision["security_strategy"]
 
     kem = decision["kem"]
     signature = decision["signature"]
@@ -105,30 +67,9 @@ def main():
             "\nEnter Message To Send Securely: "
         )
 
-        kem_obj, public_key = kem_keygen(kem)
-
-        ciphertext, shared_secret = kem_encrypt(
-            kem_obj,
-            public_key
-        )
-
-        encrypted_payload = encrypt_message(
-            shared_secret,
-            user_message
-        )
-
-        signature_data = sign_payload(
-            signature,
-            encrypted_payload["ciphertext"].encode()
-        )
-       
-
-        result = send_offload_request(
-            kem,
-            encrypted_payload,
-            shared_secret,
-            signature_data,
-            signature
+        result = send_secure_message(
+            user_message,
+            decision
         )
 
         print("\n=== SECURE CHANNEL ===")
@@ -166,11 +107,17 @@ def main():
 
         result = {
             "status": "success",
+
+            "security_strategy": security_strategy,
+
             "kem_used": decision["kem"],
             "signature_used": signature,
             "mode": "local",
+
             "kem_success": ss1 == ss2,
-            "execution_time_ms": round((end - start) * 1000, 2)
+
+            "execution_time_ms":
+                round((end - start) * 1000, 2)
         }
 
         print(json.dumps(result, indent=4))

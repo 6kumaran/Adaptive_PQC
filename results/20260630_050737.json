@@ -1,0 +1,19 @@
+{
+    "status": "success",
+    "execution_time_ms": 0.68,
+    "kem_success": true,
+    "execution": "local",
+    "battery": 62.46,
+    "cpu": 15.93,
+    "memory": 24.21,
+    "mode": "high_security",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "threat_profile": "LOW",
+    "threat_score": 28,
+    "threat_level": "LOW",
+    "threat_override": false,
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-06-30T05:07:37.319984"
+}

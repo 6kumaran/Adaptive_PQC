@@ -4,6 +4,13 @@ import base64
 import hashlib
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PublicFormat
+)
+from cryptography.exceptions import InvalidSignature
 
 # ---------- Dynamic KEM ----------
 def kem_keygen(kem_name):
@@ -173,6 +180,63 @@ def verify_payload(
         signature,
         public_key
     )
+# ----------------------------------------
+# Classical Signatures (ECDSA)
+# ----------------------------------------
+
+def classical_keygen():
+
+    private_key = ec.generate_private_key(
+        ec.SECP256R1()
+    )
+
+    public_key = private_key.public_key()
+
+    return private_key, public_key
+
+
+def classical_sign(private_key, message_bytes):
+
+    signature = private_key.sign(
+        message_bytes,
+        ec.ECDSA(hashes.SHA256())
+    )
+
+    return {
+        "signature": base64.b64encode(signature).decode(),
+
+        "public_key": base64.b64encode(
+            private_key.public_key().public_bytes(
+                Encoding.X962,
+                PublicFormat.UncompressedPoint
+            )
+        ).decode()
+    }
+
+
+def classical_verify(
+        public_key_b64,
+        signature_b64,
+        message_bytes):
+
+    try:
+
+        public_key = ec.EllipticCurvePublicKey.from_encoded_point(
+            ec.SECP256R1(),
+            base64.b64decode(public_key_b64)
+        )
+
+        public_key.verify(
+            base64.b64decode(signature_b64),
+            message_bytes,
+            ec.ECDSA(hashes.SHA256())
+        )
+
+        return True
+
+    except InvalidSignature:
+
+        return False
 
 # ---------- TEST EXECUTION ----------
 if __name__ == "__main__":

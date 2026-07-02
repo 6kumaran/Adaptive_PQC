@@ -1,20 +1,22 @@
 import streamlit as st
-import json, os, glob, requests, time
+import json, os, glob, time
+import copy
 import pandas as pd
 from datetime import datetime
 from ml_decision_engine import ml_decide_execution
 from iot_device import IoTDevice
-import base64
 from decision_engine import decide_execution
-from pqc_module import (
-    kem_keygen,
-    kem_encrypt,
-    kem_decrypt,
-    encrypt_message,
-    sign_payload
+from secure_channel import (
+    send_secure_message,
+    SecurityTestMode
 )
 from multi_device_simulation import simulate_devices
 from datetime import timedelta
+from pqc_module import (
+    kem_keygen,
+    kem_encrypt,
+    kem_decrypt
+)
 
 def generate_explanation(status, decision):
 
@@ -103,7 +105,7 @@ def run_execution(decision, battery, cpu, memory):
             "kem_success": True,
             "execution": "local"
         }
-
+    result["security_strategy"] = decision["security_strategy"]
     result["battery"] = battery
     result["cpu"] = cpu
     result["memory"] = memory
@@ -134,6 +136,43 @@ def run_execution(decision, battery, cpu, memory):
     )
 
     return result
+
+def apply_protocol_threat_events(threat_score, threat_indicators, secure_result):
+    """
+    Updates the threat score and indicators based on
+    secure communication protocol events.
+    """
+
+    if not secure_result:
+        return threat_score, threat_indicators
+
+    response = secure_result.get("response", {})
+
+    # Replay Attack
+    if response.get("replay_detected", False):
+        threat_score += 20
+
+        if "Replay Attack Indicator" not in threat_indicators:
+            threat_indicators.append("Replay Attack Indicator")
+
+    # Expired Message
+    if response.get("expired", False):
+        threat_score += 10
+
+        if "Expired Message" not in threat_indicators:
+            threat_indicators.append("Expired Message")
+
+    # Signature Verification Failure
+    if response.get("signature_verified") is False:
+        threat_score += 30
+
+        if "Signature Verification Failure" not in threat_indicators:
+            threat_indicators.append("Signature Verification Failure")
+
+    # Prevent overflow
+    threat_score = min(threat_score, 100)
+
+    return threat_score, threat_indicators
 
 EDGE_SERVER_URL = "http://127.0.0.1:8000/offload"
 RESULTS_FOLDER = "results"
@@ -179,110 +218,21 @@ def save_simulation_results(results):
         json.dump(results, f, indent=4)
         
 def display_decision(decision):
+
     st.markdown(f"""
-    **Execution:** {decision['execution'].upper()}  
-    **Mode:** {decision['mode']}  
-    **KEM:** {decision['kem']}  
-    **Signature:** {decision['signature']}
+    **Execution:** {decision['execution'].upper()}
+
+    **Security Strategy:** {decision['security_strategy']}
+
+    **Security Mode:** {decision['mode']}
+
+    **KEM:** {decision['kem']}
+
+    **PQC Signature:** {decision['signature']}
     """)
 
-def secure_channel_demo(
-        message,
-        decision):
-
-    kem = decision["kem"]
-    signature = decision["signature"]
-
-    start = time.time()
-
-    try:
-
-        kem_obj, public_key = kem_keygen(kem)
-
-        ciphertext, shared_secret = kem_encrypt(
-            kem_obj,
-            public_key
-        )
-
-        encrypted_payload = encrypt_message(
-            shared_secret,
-            message
-        )
-
-        signature_data = sign_payload(
-            signature,
-            encrypted_payload["ciphertext"].encode()
-        )
-
-        payload = {
-            "kem": kem,
-            "ciphertext":
-                encrypted_payload["ciphertext"],
-            "nonce":
-                encrypted_payload["nonce"],
-            "shared_secret":
-                base64.b64encode(
-                    shared_secret
-                ).decode(),
-
-            "signature_algorithm":
-                signature,
-
-            "signature":
-                signature_data["signature"],
-
-            "public_key":
-                signature_data["public_key"]
-        }
-
-        response = requests.post(
-            EDGE_SERVER_URL,
-            json=payload,
-            timeout=10
-        )
-
-        result = response.json()
-
-        end = time.time()
-
-        return {
-            "status": "success",
-            "record_type": "secure_channel",
-            "kem": kem,
-            "signature": signature,
-
-            "ciphertext":
-                encrypted_payload["ciphertext"],
-
-            "ciphertext_size":
-                len(
-                    encrypted_payload[
-                        "ciphertext"
-                    ]
-                ),
-
-            "signature_size":
-                len(
-                    signature_data[
-                        "signature"
-                    ]
-                ),
-
-            "execution_time_ms":
-                round(
-                    (end-start)*1000,
-                    2
-                ),
-
-            "response": result
-        }
-
-    except Exception as e:
-
-        return {
-            "status": "failed",
-            "error": str(e)
-        }
+    if decision["security_strategy"] == "HYBRID":
+        st.success("Classical Signature: ECDSA-P256")
     
 # -----------------------------------
 # Premium UI
@@ -352,6 +302,30 @@ elif decision_mode == "ML-Based":
 else:
     decision = rule_decision  # default for execution
 
+# -----------------------------------
+# Persist Current Decision
+# -----------------------------------
+
+if "current_decision" not in st.session_state:
+    st.session_state.current_decision = decision
+
+st.session_state.current_decision = decision
+
+# -----------------------------------
+# Persistent Threat State
+# -----------------------------------
+
+if "threat_state" not in st.session_state:
+
+    st.session_state.threat_state = {
+        "score": decision.get("threat_score", 0),
+        "level": decision.get("threat_level", "SAFE"),
+        "indicators": decision.get(
+            "threat_indicators",
+            []
+        ).copy()
+    }
+
 battery = status["battery"]
 cpu = status["cpu"]
 memory = status["memory"]
@@ -392,26 +366,17 @@ with t1:
 
     st.metric(
         "Threat Score",
-        decision.get(
-            "threat_score",
-            0
-        )
+        st.session_state.threat_state["score"]
     )
 
 with t2:
 
     st.metric(
         "Threat Level",
-        decision.get(
-            "threat_level",
-            "SAFE"
-        )
+        st.session_state.threat_state["level"]
     )
 
-indicators = decision.get(
-    "threat_indicators",
-    []
-)
+indicators = st.session_state.threat_state["indicators"]
 
 if indicators:
 
@@ -459,11 +424,21 @@ with left:
 with right:
     st.subheader("🔐 Selection")
     st.markdown(f"""
-    **Engine:** {decision_mode}  
-    **Mode:** {mode.upper()}  
-    **KEM:** {kem}  
-    **Signature:** {signature}
+    **Engine:** {decision_mode}
+
+    **Execution:** {decision["execution"].upper()}
+
+    **Security Strategy:** {decision["security_strategy"]}
+
+    **Security Mode:** {decision["mode"]}
+
+    **KEM:** {kem}
+
+    **PQC Signature:** {signature}
     """)
+
+    if decision["security_strategy"] == "HYBRID":
+        st.success("Classical Signature: ECDSA-P256")
 
 execute_clicked = st.button("▶ Execute Adaptive PQC", key="execute_main")
 
@@ -533,6 +508,16 @@ secure_message = st.text_area(
     "Message To Protect",
     "Patient Heart Rate = 92 BPM"
 )
+security_test = st.selectbox(
+    "🧪 Security Test",
+    [
+        SecurityTestMode.NORMAL,
+        SecurityTestMode.REPLAY,
+        SecurityTestMode.EXPIRED,
+        SecurityTestMode.TAMPERED
+    ],
+    index=0
+)
 
 secure_demo = st.button(
     "🚀 Send Secure Message",
@@ -541,10 +526,41 @@ secure_demo = st.button(
 
 if secure_demo:
 
-    result = secure_channel_demo(
+    result = send_secure_message(
         secure_message,
-        decision
+        st.session_state.current_decision,
+        security_test
     )
+    score, indicators = apply_protocol_threat_events(
+        st.session_state.threat_state["score"],
+        st.session_state.threat_state["indicators"],
+        result
+    )
+
+    st.session_state.threat_state["score"] = score
+    st.session_state.threat_state["indicators"] = indicators
+    
+    if "threat_state" not in st.session_state:
+
+        st.session_state.threat_state = {
+            "score": decision.get("threat_score", 0),
+            "level": decision.get("threat_level", "SAFE"),
+            "indicators": decision.get(
+                "threat_indicators",
+                []
+            ).copy()
+        }
+
+    score = st.session_state.threat_state["score"]
+
+    if score >= 80:
+        st.session_state.threat_state["level"] = "HIGH"
+    elif score >= 50:
+        st.session_state.threat_state["level"] = "MEDIUM"
+    elif score >= 20:
+        st.session_state.threat_state["level"] = "LOW"
+    else:
+        st.session_state.threat_state["level"] = "SAFE"
 
     if result["status"] == "success":
 
@@ -583,14 +599,24 @@ if secure_demo:
             )
 
         st.markdown(
+            f"**Security Strategy:** "
+            f"{result['security_strategy']}"
+        )
+
+        st.markdown(
             f"**Selected KEM:** "
             f"{result['kem']}"
         )
 
         st.markdown(
-            f"**Selected Signature:** "
+            f"**PQC Signature:** "
             f"{result['signature']}"
         )
+
+        if result["security_strategy"] == "HYBRID":
+            st.markdown(
+                "**Classical Signature:** ECDSA-P256"
+            )
 
         st.markdown(
             "**Encrypted Payload:**"
@@ -611,12 +637,134 @@ if secure_demo:
                 "N/A"
             )
         )
+        st.subheader("Debug Response")
+        st.json(result)
+        secure_log = {
+            "record_type": "secure_channel",
+
+            "protocol_version": "2.0",
+
+            "timestamp": datetime.now().isoformat(),
+
+            "kem_used": result["kem"],
+            "signature_used": result["signature"],
+
+            "execution_time_ms":
+            result["execution_time_ms"],
+
+            "ciphertext_size":
+            result["ciphertext_size"],
+
+            "signature_size":
+            result["signature_size"],
+
+            "security": {
+                "strategy": decision["security_strategy"],
+                "mode": decision["mode"],
+                "kem": decision["kem"],
+                "signature": decision["signature"]
+            },
+
+            "status":
+            result["response"].get("status"),
+
+            "signature_verified":
+            result["response"].get("signature_verified")
+        }
+
+        save_result(secure_log)
 
     else:
 
         st.error(
             result["error"]
         )
+    st.markdown("---")
+    st.subheader("🛡 Protocol Validation Result")
+
+    response = result["response"]
+
+    if response.get("status") == "success":
+        st.success("✅ Secure packet accepted")
+
+    else:
+        st.error(f"❌ {response.get('message','Unknown Error')}")
+    if response.get("replay_detected"):
+        st.warning("🔁 Replay attack detected")
+
+    if response.get("expired"):
+        st.warning("⏰ Packet expired")
+
+    if response.get("signature_verified") is False:
+        st.warning("📝 Signature verification failed")
+    
+    # -----------------------------------
+    # Replay Analytics
+    # -----------------------------------
+
+    if "security_stats" not in st.session_state:
+
+        st.session_state.security_stats = {
+        "success": 0,
+        "replay": 0,
+        "expired": 0,
+        "tampered": 0
+        }
+
+    response = result["response"]
+
+    if response.get("status") == "success":
+
+        st.session_state.security_stats["success"] += 1
+
+    elif response.get("replay_detected"):
+
+        st.session_state.security_stats["replay"] += 1
+
+    elif response.get("expired"):
+
+        st.session_state.security_stats["expired"] += 1
+
+    elif response.get("signature_verified") is False:
+
+        st.session_state.security_stats["tampered"] += 1
+    
+    st.markdown("---")
+    st.subheader("📊 Replay Protection Analytics")
+
+    stats = st.session_state.security_stats
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+    "✅ Successful",
+    stats["success"]
+    )
+
+    c2.metric(
+    "🔁 Replay",
+    stats["replay"]
+    )
+
+    c3.metric(
+    "⏰ Expired",
+    stats["expired"]
+    )
+
+    c4.metric(
+    "📝 Tampered",
+    stats["tampered"]
+    )
+
+    total = sum(stats.values())
+
+    if total > 0:
+
+        chart = pd.DataFrame({
+        "Events": stats
+        })
+
+        st.bar_chart(chart)
 # -----------------------------------
 # Multi-Device Simulation
 # -----------------------------------
@@ -786,6 +934,13 @@ with st.expander("📊 Analytics", expanded=False):
 
         with c:
             st.caption("Signature Usage")
+            if "security_strategy" in df.columns:
+
+                st.caption("Security Strategy Distribution")
+
+                st.bar_chart(
+                    df["security_strategy"].value_counts()
+                )
 
             if "signature_used" in df.columns:
                 st.bar_chart(

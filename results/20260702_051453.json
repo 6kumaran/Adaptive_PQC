@@ -1,0 +1,19 @@
+{
+    "status": "success",
+    "execution_time_ms": 17.85,
+    "execution": "edge",
+    "security_strategy": "PQC",
+    "battery": 63.27,
+    "cpu": 65.71,
+    "memory": 42.71,
+    "mode": "balanced",
+    "kem_used": "ML-KEM-768",
+    "signature_used": "Dilithium3",
+    "threat_profile": "LOW",
+    "threat_score": 35,
+    "threat_level": "LOW",
+    "threat_override": false,
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-07-02T05:14:53.993963"
+}

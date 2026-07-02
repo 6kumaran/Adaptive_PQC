@@ -145,6 +145,18 @@ def decide_execution(device_status,threat_profile="AUTO"):
 
     if original_mode != mode:
         threat_override = True
+    # ------------------------------
+    # Crypto Strategy (Stage 2)
+    # ------------------------------
+
+    if threat_level == "SAFE":
+        security_strategy = "CLASSICAL"
+
+    elif threat_level in ["LOW", "MEDIUM"]:
+        security_strategy = "PQC"
+
+    else:   # HIGH
+        security_strategy = "HYBRID"
 
     # ------------------------------
     # KEM Selection
@@ -181,6 +193,8 @@ def decide_execution(device_status,threat_profile="AUTO"):
     "score": score,
     "execution": execution,
     "mode": mode,
+    # Stage 1
+    "security_strategy": security_strategy,
     "kem": kem,
     "signature": signature,
 

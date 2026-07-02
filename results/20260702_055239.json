@@ -1,0 +1,20 @@
+{
+    "status": "success",
+    "execution_time_ms": 0.5,
+    "kem_success": true,
+    "execution": "local",
+    "security_strategy": "HYBRID",
+    "battery": 96.87,
+    "cpu": 24.37,
+    "memory": 69.41,
+    "mode": "high_security",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "threat_profile": "HIGH",
+    "threat_score": 87,
+    "threat_level": "HIGH",
+    "threat_override": true,
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-07-02T05:52:39.730201"
+}

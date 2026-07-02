@@ -1,0 +1,18 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-06-30T05:56:59.617642",
+    "kem_used": "FrodoKEM-640-AES",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "execution_time_ms": 45.71,
+    "ciphertext_size": 60,
+    "signature_size": 22784,
+    "security": {
+        "strategy": "PQC",
+        "mode": "high_security",
+        "kem": "FrodoKEM-640-AES",
+        "signature": "SPHINCS+-SHAKE-128f-simple"
+    },
+    "status": "success",
+    "signature_verified": true
+}

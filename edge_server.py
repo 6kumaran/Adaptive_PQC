@@ -1,22 +1,37 @@
+from typing import Set
 from fastapi import FastAPI
 from pydantic import BaseModel
 import time
+
+from requests import request
 import oqs
 import base64
 
 from pqc_module import (
     decrypt_message,
-    verify_payload
+    verify_payload,
+    classical_verify
 )
 
 app = FastAPI()
 
+# -----------------------------
+# Replay Protection Settings
+# -----------------------------
+MESSAGE_EXPIRY_SECONDS = 60
+
+# -----------------------------
+# Replay Protection Cache
+# -----------------------------
+seen_message_ids: Set[str] = set()
 
 # -----------------------------
 # Request Format
 # -----------------------------
 class OffloadRequest(BaseModel):
     kem: str
+    message_id: str
+    timestamp: float
     ciphertext: str
     nonce: str
     shared_secret: str
@@ -24,6 +39,11 @@ class OffloadRequest(BaseModel):
     signature_algorithm: str
     signature: str
     public_key: str
+    classical_signature_algorithm: str | None = None
+
+    classical_signature: str | None = None
+
+    classical_public_key: str | None = None
 
 
 # -----------------------------
@@ -52,6 +72,33 @@ def offload_task(request: OffloadRequest):
         shared_secret = base64.b64decode(
             request.shared_secret
         )
+        # -----------------------------
+        # Replay Attack Detection
+        # -----------------------------
+        if request.message_id in seen_message_ids:
+
+            return {
+                "status": "rejected",
+                "replay_detected": True,
+                "message": "Replay Attack Detected"
+            }
+
+        # -----------------------------
+        # Timestamp Validation
+        # -----------------------------
+        current_time = time.time()
+
+        if current_time - request.timestamp > MESSAGE_EXPIRY_SECONDS:
+
+            return {
+                "status": "rejected",
+                "expired": True,
+                "message": "Message Expired"
+            }
+        
+        # Only cache valid messages
+        seen_message_ids.add(request.message_id)
+        
         verified = verify_payload(
             request.signature_algorithm,
             request.ciphertext.encode(),
@@ -66,6 +113,29 @@ def offload_task(request: OffloadRequest):
                 "signature_verified": False,
                 "message": "Tampered Payload"
             }
+        # ------------------------------------
+        # Classical Verification (Hybrid)
+        # ------------------------------------
+
+        if request.classical_signature:
+
+            classical_verified = classical_verify(
+                request.classical_public_key,
+                request.classical_signature,
+                request.ciphertext.encode()
+            )
+
+            if not classical_verified:
+
+                return {
+                    "status": "rejected",
+
+                    "signature_verified": False,
+
+                    "classical_signature_verified": False,
+
+                    "message": "Classical Signature Verification Failed"
+                }
 
         decrypted_message = decrypt_message(
             shared_secret,
@@ -81,6 +151,10 @@ def offload_task(request: OffloadRequest):
                 request.signature_algorithm,
 
             "signature_verified": True,
+
+            "classical_signature_verified":
+                True if request.classical_signature
+                else None,
 
             "decrypted_message":
                 decrypted_message,
