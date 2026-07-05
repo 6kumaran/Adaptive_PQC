@@ -67,15 +67,15 @@ def assess_threat(threat_profile="AUTO"):
         "indicators": indicators
     }
 
-def decide_execution(device_status,threat_profile="AUTO"):
+def decide_execution(device_status,threat_profile="AUTO",threat_data=None):
+    
 
     battery = device_status["battery"]
     cpu = device_status["cpu"]
     memory = device_status["memory"]
     network = device_status["network"]
-    threat_data = assess_threat(
-    threat_profile
-    )
+    if threat_data is None:
+        threat_data = assess_threat(threat_profile)
     threat_override = False
 
     score = 0

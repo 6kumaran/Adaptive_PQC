@@ -1,0 +1,18 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-07-04T04:57:32.575725",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "execution_time_ms": 59.85,
+    "ciphertext_size": 60,
+    "signature_size": 22784,
+    "security": {
+        "strategy": "HYBRID",
+        "mode": "high_security",
+        "kem": "ML-KEM-1024",
+        "signature": "SPHINCS+-SHAKE-128f-simple"
+    },
+    "status": "success",
+    "signature_verified": true
+}
