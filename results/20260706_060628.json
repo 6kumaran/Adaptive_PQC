@@ -1,0 +1,22 @@
+{
+    "status": "success",
+    "execution_time_ms": 5.08,
+    "execution": "edge",
+    "security_strategy": "HYBRID",
+    "battery": 84.13,
+    "cpu": 92.69,
+    "memory": 47.44,
+    "mode": "high_security",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "threat_profile": "HIGH",
+    "threat_score": 93,
+    "threat_level": "HIGH",
+    "threat_override": true,
+    "context_profile": "BALANCED",
+    "context_priority": "BALANCED",
+    "context_description": "General-purpose adaptive security profile.",
+    "engine": "ML-Based",
+    "record_type": "execution",
+    "timestamp": "2026-07-06T06:06:28.660140"
+}

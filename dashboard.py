@@ -114,6 +114,52 @@ def run_execution(decision, battery, cpu, memory):
     "threat_override",
     False
     )
+    result["context_profile"] = decision.get(
+        "context_profile",
+        "BALANCED"
+    )
+
+    result["context_priority"] = decision.get(
+        "context_priority",
+        "BALANCED"
+    )
+
+    result["context_description"] = decision.get(
+        "context_description",
+        ""
+    )
+    result.update({
+    "estimated_energy":
+        decision.get("estimated_energy"),
+
+    "cpu_energy":
+        decision.get("cpu_energy"),
+
+    "memory_energy":
+        decision.get("memory_energy"),
+
+    "crypto_energy":
+        decision.get("crypto_energy"),
+
+    "signature_energy":
+        decision.get("signature_energy"),
+
+    "communication_energy":
+        decision.get("communication_energy"),
+
+    "energy_level":
+        decision.get("energy_level"),
+    "predicted_latency_ms":
+        decision.get("predicted_latency_ms"),
+
+    "latency_category":
+        decision.get("latency_category"),
+    "latency_optimization":
+        decision.get("latency_optimization"),
+
+    "latency_reason":
+        decision.get("latency_reason"),
+    })
     return result
 
 def apply_protocol_threat_events(threat_score, threat_indicators, secure_result):
@@ -163,7 +209,6 @@ def save_simulation_results(results):
             base_time +
             timedelta(seconds=i)
         ).isoformat()
-        row["record_type"] = "simulation"
         row["record_type"] = "simulation"
     filename = datetime.now().strftime(
         "simulation_%Y%m%d_%H%M%S.json"
@@ -242,6 +287,16 @@ threat_profile = st.selectbox(
         "HIGH"
     ]
 )
+context_profile = st.selectbox(
+    "🏷 Application Context",
+    [
+        "BALANCED",
+        "HIGH_SECURITY",
+        "PERFORMANCE",
+        "ENERGY_SAVING",
+        "MISSION_CRITICAL"
+    ]
+)
 # -----------------------------------
 # Refresh Button
 # -----------------------------------
@@ -262,12 +317,14 @@ shared_threat = assess_threat(threat_profile)
 rule_decision = decide_execution(
     status,
     threat_profile,
-    threat_data=shared_threat
+    threat_data=shared_threat,
+    context_profile=context_profile
 )
 ml_decision = ml_decide_execution(
     status,
     threat_profile,
-    threat_data=shared_threat
+    threat_data=shared_threat,
+    context_profile=context_profile
 )
 if decision_mode == "Rule-Based":
     decision = rule_decision
@@ -317,6 +374,17 @@ t1, t2 = st.columns(2)
 st.info(
     f"Current Threat Profile: "
     f"{decision.get('threat_profile', 'AUTO')}"
+)
+st.info(
+    f"Current Context Profile: "
+    f"{decision.get('context_profile', 'BALANCED')}"
+)
+
+st.caption(
+    decision.get(
+        "context_description",
+        ""
+    )
 )
 if decision.get("threat_override", False):
     st.error(
@@ -386,6 +454,15 @@ if execute_clicked:
         **Time:** {rule_result['execution_time_ms']} ms  
         **Status:** {rule_result.get('status', 'unknown')} 
         """)
+        st.metric(
+            "⚡ Estimated Energy",
+            f"{rule_result['estimated_energy']:.2f}"
+        )
+
+        st.metric(
+            "Energy Level",
+            rule_result["energy_level"]
+        )
         with st.expander("🔍 Details"):
             st.json(rule_result)
     with col2:
@@ -394,6 +471,15 @@ if execute_clicked:
         **Time:** {ml_result['execution_time_ms']} ms  
         **Status:** {ml_result.get('status', 'unknown')}  
         """)
+        st.metric(
+            "⚡ Estimated Energy",
+            f"{ml_result['estimated_energy']:.2f}"
+        )
+
+        st.metric(
+            "Energy Level",
+            ml_result["energy_level"]
+        )
         with st.expander("🔍 Details"):
             st.json(ml_result)
     # Compare
@@ -548,8 +634,16 @@ if secure_demo:
             "status":
             result["response"].get("status"),
             "signature_verified":
-            result["response"].get("signature_verified")
-        }
+            result["response"].get("signature_verified"),
+            "context_profile":
+            decision.get("context_profile"),
+
+            "context_priority":
+            decision.get("context_priority"),
+
+            "context_description":
+            decision.get("context_description"),
+            }
         save_result(secure_log)
     else:
 
@@ -624,7 +718,8 @@ if st.button("📈 Generate 500 Demo Runs"):
     for _ in range(50):
         batch = simulate_devices(
             10,
-            use_ml=False
+            use_ml=False,
+            simulation_mode=True
         )
         all_results.extend(batch)
     save_simulation_results(all_results)
@@ -642,7 +737,11 @@ with col2:
 run_sim = st.button("🚀 Run Simulation", key="multi_sim")
 if run_sim:
     use_ml = True if sim_mode == "ML-Based" else False
-    results = simulate_devices(num_devices, use_ml)
+    results = simulate_devices(num_devices, use_ml,simulation_mode=True)
+    for r in results:
+        if r["execution"] == "edge":
+            st.json(r)
+            break
     save_simulation_results(results)
     df = pd.DataFrame(results)
     st.success(f"Simulation completed for {num_devices} devices")
@@ -651,9 +750,9 @@ if run_sim:
     # -----------------------------------
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.metric("Edge Executions", (df["mode"] == "edge").sum())
+        st.metric("Edge Executions", (df["execution"] == "edge").sum())
     with c2:
-        st.metric("Local Executions", (df["mode"] == "local").sum())
+        st.metric("Local Executions", (df["execution"] == "local").sum())
     with c3:
         st.metric("Avg Time (ms)", round(df["execution_time_ms"].mean(), 2))
     # -----------------------------------
@@ -685,6 +784,8 @@ with st.expander("📊 Analytics", expanded=False):
                 pass
     if rows:
         df = pd.DataFrame(rows)
+        st.write(df.tail(3))
+        st.write(df.columns.tolist())
         analytics_view = st.selectbox(
             "Analytics View",
             [
@@ -730,10 +831,285 @@ with st.expander("📊 Analytics", expanded=False):
         )
         if len(df) > 500:
             df = df.tail(500)
+        # -----------------------------------
+        # Energy Summary
+        # -----------------------------------
+
+        if "estimated_energy" in df.columns:
+
+            energy_df = df.dropna(
+                subset=["estimated_energy"]
+            )
+
+            if not energy_df.empty:
+
+                st.subheader("⚡ Energy Analytics")
+
+                c1, c2, c3 = st.columns(3)
+
+                c1.metric(
+                    "Average Energy",
+                    f"{energy_df['estimated_energy'].mean():.2f}"
+                )
+
+                c2.metric(
+                    "Highest Energy",
+                    f"{energy_df['estimated_energy'].max():.2f}"
+                )
+
+                c3.metric(
+                    "Lowest Energy",
+                    f"{energy_df['estimated_energy'].min():.2f}"
+                )
+        # -----------------------------------
+        # Network Latency Analytics
+        # -----------------------------------
+
+        if "predicted_latency_ms" in df.columns:
+        
+            latency_df = df.dropna(
+                subset=["predicted_latency_ms"]
+            )
+
+            if not latency_df.empty:
+            
+                st.markdown("---")
+                st.subheader("🌐 Network Latency Analytics")
+
+                l1, l2, l3 = st.columns(3)
+
+                with l1:
+                    st.metric(
+                        "Average Latency",
+                        f"{latency_df['predicted_latency_ms'].mean():.2f} ms"
+                    )
+
+                with l2:
+                    st.metric(
+                        "Highest Latency",
+                        f"{latency_df['predicted_latency_ms'].max():.2f} ms"
+                    )
+
+                with l3:
+                    st.metric(
+                        "Lowest Latency",
+                        f"{latency_df['predicted_latency_ms'].min():.2f} ms"
+                    )
+        st.caption("Predicted Latency Trend")
+
+        if "predicted_latency_ms" in df.columns:
+        
+            latency_df = df.dropna(
+                subset=["predicted_latency_ms"]
+            ).copy()
+
+            if not latency_df.empty:
+            
+                latency_df["rolling_avg"] = (
+                    latency_df["predicted_latency_ms"]
+                    .rolling(
+                        window=20,
+                        min_periods=1
+                    )
+                    .mean()
+                )
+
+                latency_df = latency_df.set_index(
+                    "run_id"
+                )
+
+                st.line_chart(
+                    latency_df[
+                        [
+                            "predicted_latency_ms",
+                            "rolling_avg"
+                        ]
+                    ]
+                )
+        # -----------------------------------
+        # Average Latency by Security Strategy
+        # -----------------------------------
+
+        if (
+            "security_strategy" in latency_df.columns
+            and "predicted_latency_ms" in latency_df.columns
+        ):
+
+            st.caption("Average Latency by Security Strategy")
+
+            strategy_latency = (
+                latency_df.groupby(
+                    "security_strategy"
+                )["predicted_latency_ms"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                strategy_latency,
+                x="security_strategy",
+                y="predicted_latency_ms",
+                color="security_strategy",
+                title="Average Latency by Security Strategy",
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch",
+                key="latency_strategy_chart",
+            )
+        # -----------------------------------
+        # Latency Optimization Statistics
+        # -----------------------------------
+
+        if "latency_optimization" in latency_df.columns:
+        
+            st.caption(
+                "Latency Optimization Statistics"
+            )
+
+            optimization_counts = (
+                latency_df[
+                    "latency_optimization"
+                ]
+                .astype(str)
+                .value_counts()
+                .reset_index()
+            )
+
+            optimization_counts.columns = [
+                "Optimization",
+                "Count",
+            ]
+
+            fig = px.bar(
+                optimization_counts,
+                x="Optimization",
+                y="Count",
+                color="Optimization",
+                title="Latency Optimization Statistics",
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch",
+                key="latency_optimization_chart",
+            )
+        # -----------------------------------
+        # Multi-Edge Load Balancing Analytics
+        # -----------------------------------
+
+        if "selected_edge" in df.columns:
+        
+            edge_df = df.dropna(
+                subset=["selected_edge"]
+            )
+            st.write("Total rows:", len(df))
+            st.write("Edge rows:", len(edge_df))
+            st.write(edge_df[["selected_edge", "edge_status"]].head())
+
+            if not edge_df.empty:
+            
+                st.markdown("---")
+                st.subheader(
+                    "🌍 Multi-Edge Load Balancing Analytics"
+                )
+
+                c1, c2, c3 = st.columns(3)
+
+                with c1:
+                    st.metric(
+                        "Edge Executions",
+                        len(edge_df)
+                    )
+
+                with c2:
+                    st.metric(
+                        "Average Edge Latency",
+                        f"{edge_df['edge_latency'].mean():.2f} ms"
+                    )
+
+                with c3:
+                    st.metric(
+                        "Average Edge Load",
+                        f"{edge_df['edge_load'].mean():.2f}"
+                    )
+            if not edge_df.empty:
+                st.caption("Selected Edge Distribution")
+    
+                selected_edge_counts = (
+                    edge_df["selected_edge"]
+                    .value_counts()
+                    .reset_index(name="Count")
+                    .rename(columns={"selected_edge": "Selected Edge"})
+                )
+    
+                fig = px.bar(
+                    selected_edge_counts,
+                    x="Selected Edge",
+                    y="Count",
+                    color="Selected Edge",
+                )
+    
+                st.plotly_chart(
+                    fig,
+                    width="stretch",
+                    key="selected_edge_distribution",
+                )
+                st.caption("Edge Status Distribution")
+    
+                status_counts = (
+                    edge_df["edge_status"]
+                    .value_counts()
+                    .reset_index(name="Count")
+                    .rename(columns={"edge_status": "Status"})
+                )
+    
+                fig = px.bar(
+                    status_counts,
+                    x="Status",
+                    y="Count",
+                    color="Status",
+                )
+    
+                st.plotly_chart(
+                    fig,
+                    width="stretch",
+                    key="edge_status_distribution",
+                )
+                st.caption("Average Selected Edge Resources")
+    
+                resource_df = pd.DataFrame({
+                    "Metric": [
+                        "CPU",
+                        "Memory",
+                        "Latency",
+                        "Load"
+                    ],
+                    "Value": [
+                        edge_df["edge_cpu"].mean(),
+                        edge_df["edge_memory"].mean(),
+                        edge_df["edge_latency"].mean(),
+                        edge_df["edge_load"].mean() * 100
+                    ]
+                })
+    
+                fig = px.bar(
+                    resource_df,
+                    x="Metric",
+                    y="Value",
+                    color="Metric",
+                )
+    
+                st.plotly_chart(
+                    fig,
+                    width="stretch",
+                    key="edge_resource_summary",
+                )
         a,b = st.columns(2)
         with a:
             st.caption("Local vs Edge")
-            st.bar_chart(df["mode"].value_counts())
+            st.bar_chart(df["execution"].value_counts())
         with b:
             st.caption("KEM Usage")
             st.bar_chart(df["kem_used"].value_counts())
@@ -751,7 +1127,7 @@ with st.expander("📊 Analytics", expanded=False):
                 )
         with d:
             st.caption("Avg Execution Time")
-            st.bar_chart(df.groupby("mode")["execution_time_ms"].mean())
+            st.bar_chart(df.groupby("execution")["execution_time_ms"].mean())
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(
                 df["timestamp"]
@@ -790,6 +1166,120 @@ with st.expander("📊 Analytics", expanded=False):
                         "rolling_avg"
                     ]
                 ]
+            )
+        st.caption("Estimated Energy Trend")
+
+        if (
+            "estimated_energy" in df.columns
+        ):
+
+            energy_df = df.dropna(
+                subset=["estimated_energy"]
+            ).copy()
+
+            if not energy_df.empty:
+            
+                energy_df["rolling_avg"] = (
+                    energy_df["estimated_energy"]
+                    .rolling(
+                        window=20,
+                        min_periods=1
+                    )
+                    .mean()
+                )
+
+                energy_df = energy_df.set_index(
+                    "run_id"
+                )
+
+                st.line_chart(
+                    energy_df[
+                        [
+                            "estimated_energy",
+                            "rolling_avg"
+                        ]
+                    ]
+                )
+        st.caption("Threat Level vs Estimated Energy")
+
+        if (
+            "threat_level" in df.columns
+            and "estimated_energy" in df.columns
+        ):
+
+            threat_energy = (
+                df.groupby("threat_level")["estimated_energy"]
+                .mean()
+                .reindex(
+                    ["SAFE", "LOW", "MEDIUM", "HIGH"]
+                )
+                .reset_index()
+            )
+
+            fig = px.bar(
+                threat_energy,
+                x="threat_level",
+                y="estimated_energy",
+                color="threat_level",
+                title="Average Estimated Energy by Threat Level"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch",
+                key="threat_energy_chart"
+            )
+        st.caption("Application Context vs Estimated Energy")
+
+        if (
+            "context_profile" in df.columns
+            and "estimated_energy" in df.columns
+        ):
+
+            context_energy = (
+                df.groupby("context_profile")["estimated_energy"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                context_energy,
+                x="context_profile",
+                y="estimated_energy",
+                color="context_profile",
+                title="Average Estimated Energy by Application Context"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch",
+                key="context_energy_chart"
+            )
+        st.caption("Security Strategy vs Estimated Energy")
+
+        if (
+            "security_strategy" in df.columns
+            and "estimated_energy" in df.columns
+        ):
+
+            strategy_energy = (
+                df.groupby("security_strategy")["estimated_energy"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                strategy_energy,
+                x="security_strategy",
+                y="estimated_energy",
+                color="security_strategy",
+                title="Average Estimated Energy by Security Strategy"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch",
+                key="strategy_energy_chart"
             )
         st.caption("CPU Used Per Run")
         if "cpu" in df.columns:
@@ -910,7 +1400,8 @@ with st.expander("📊 Analytics", expanded=False):
                     )
                     st.plotly_chart(
                         fig,
-                        use_container_width=True
+                        width="stretch",
+                        key="threat_score_trend"
                     )
             with right:
                 st.caption("Threat Summary")
@@ -955,7 +1446,8 @@ with st.expander("📊 Analytics", expanded=False):
             )
             st.plotly_chart(
                 fig,
-                use_container_width=True
+                width="stretch",
+                key="override_statistics"
             )
         if (
             "threat_level" in threat_df.columns
@@ -980,7 +1472,8 @@ with st.expander("📊 Analytics", expanded=False):
             )
             st.plotly_chart(
                 fig,
-                use_container_width=True
+                width="stretch",
+                key="threat_mode_chart"
             )
         if (
             "threat_level" in threat_df.columns
@@ -1006,7 +1499,8 @@ with st.expander("📊 Analytics", expanded=False):
             )
             st.plotly_chart(
                 fig,
-                use_container_width=True
+                width="stretch",
+                key="threat_kem_chart"
             )
     else:
         st.info("No result logs yet.")

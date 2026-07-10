@@ -1,0 +1,23 @@
+{
+    "status": "success",
+    "execution_time_ms": 1.2,
+    "kem_success": true,
+    "execution": "local",
+    "security_strategy": "PQC",
+    "battery": 96.35,
+    "cpu": 57.57,
+    "memory": 30.43,
+    "mode": "high_security",
+    "kem_used": "ML-KEM-1024",
+    "signature_used": "SPHINCS+-SHAKE-128f-simple",
+    "threat_profile": "LOW",
+    "threat_score": 32,
+    "threat_level": "LOW",
+    "threat_override": false,
+    "context_profile": "HIGH_SECURITY",
+    "context_priority": "SECURITY",
+    "context_description": "Maximum security for banking, healthcare and sensitive workloads.",
+    "engine": "Rule-Based",
+    "record_type": "execution",
+    "timestamp": "2026-07-06T05:15:50.602558"
+}

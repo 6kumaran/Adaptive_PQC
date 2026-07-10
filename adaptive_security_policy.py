@@ -17,15 +17,53 @@ Only this file determines:
 
 from context_profiles import get_context_profile
 
+SECURITY_POLICY_MATRIX = {
+
+    "BALANCED": {
+        "SAFE": "CLASSICAL",
+        "LOW": "PQC",
+        "MEDIUM": "PQC",
+        "HIGH": "HYBRID"
+    },
+
+    "HIGH_SECURITY": {
+        "SAFE": "PQC",
+        "LOW": "PQC",
+        "MEDIUM": "PQC",
+        "HIGH": "HYBRID"
+    },
+
+    "PERFORMANCE": {
+        "SAFE": "CLASSICAL",
+        "LOW": "CLASSICAL",
+        "MEDIUM": "PQC",
+        "HIGH": "HYBRID"
+    },
+
+    "ENERGY_SAVING": {
+        "SAFE": "CLASSICAL",
+        "LOW": "CLASSICAL",
+        "MEDIUM": "PQC",
+        "HIGH": "HYBRID"
+    },
+
+    "MISSION_CRITICAL": {
+        "SAFE": "PQC",
+        "LOW": "PQC",
+        "MEDIUM": "HYBRID",
+        "HIGH": "HYBRID"
+    }
+
+}
+
 
 def apply_security_policy(
     battery,
     cpu,
     memory,
-    execution,
-    mode,
+    security_mode,
     threat_data,
-    context_profile="BALANCED"
+    context_profile="PERFORMANCE"
 ):
 
     profile = get_context_profile(context_profile)
@@ -34,7 +72,7 @@ def apply_security_policy(
 
     threat_override = False
 
-    security_mode = mode
+    original_security_mode = security_mode
 
     # ------------------------------------
     # Threat Override
@@ -53,24 +91,18 @@ def apply_security_policy(
 
         security_mode = "high_security"
 
-    if security_mode != mode:
+    if security_mode != original_security_mode:
         threat_override = True
 
     # ------------------------------------
-    # Security Strategy
+    # Context-Aware Security Strategy
     # ------------------------------------
 
-    if threat_level == "SAFE":
-
-        security_strategy = "CLASSICAL"
-
-    elif threat_level in ["LOW", "MEDIUM"]:
-
-        security_strategy = "PQC"
-
-    else:
-
-        security_strategy = "HYBRID"
+    security_strategy = SECURITY_POLICY_MATRIX[
+        context_profile
+    ][
+        threat_level
+    ]
 
     # ------------------------------------
     # KEM Selection
@@ -118,9 +150,7 @@ def apply_security_policy(
 
     return {
 
-        "execution": execution,
-
-        "mode": security_mode,
+        "security_mode": security_mode,
 
         "security_strategy": security_strategy,
 

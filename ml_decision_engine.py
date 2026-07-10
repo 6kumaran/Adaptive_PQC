@@ -1,7 +1,9 @@
 import joblib
 import pandas as pd
 from decision_engine import assess_threat
-
+from adaptive_security_policy import apply_security_policy
+from energy_model import estimate_energy
+from latency_model import estimate_latency
 
 # Load models
 model_exec = joblib.load("model_execution.pkl")
@@ -24,7 +26,8 @@ reverse_mode = {
 def ml_decide_execution(
     device_status,
     threat_profile="AUTO",
-    threat_data=None
+    threat_data=None,
+    context_profile="BALANCED"
 ):
 
     battery = device_status["battery"]
@@ -43,102 +46,108 @@ def ml_decide_execution(
     "cpu": cpu,
     "memory": memory,
     "network": network
-}])
+    }])
 
     exec_pred = model_exec.predict(X)[0]
     mode_pred = model_mode.predict(X)[0]
 
     execution = reverse_exec[exec_pred]
     mode = reverse_mode[mode_pred]
-    # ------------------------------
-    # Threat-Aware Security Override
-    # ------------------------------
 
+    policy = apply_security_policy(
+    battery=battery,
+    cpu=cpu,
+    memory=memory,
+    security_mode=mode,
+    threat_data=threat_data,
+    context_profile=context_profile
+    )
+    energy = estimate_energy(
+    cpu_usage=cpu,
+    memory_usage=memory,
+    network_quality=device_status["network"],
+    security_strategy=policy["security_strategy"],
+    kem_algorithm=policy["kem"],
+    signature_algorithm=policy["signature"],
+    execution_location=execution,
+    )
+    latency = estimate_latency(
+        cpu_usage=cpu,
+        memory_usage=memory,
+        network_quality=device_status["network"],
+        execution_location=execution,
+    )
+    # --------------------------------
+    # Latency-Aware Optimization
+    # --------------------------------
+
+    security_strategy = policy["security_strategy"]
+    kem = policy["kem"]
+    signature = policy["signature"]
+
+    latency_optimization = False
+    latency_reason = "Latency optimization not applied"
+
+    latency_category = latency["latency_category"]
     threat_level = threat_data["threat_level"]
 
-    original_mode = mode
+    if (
+        context_profile != "MISSION_CRITICAL"
+    ):
 
-    if threat_level == "LOW":
+        if (
+            latency_category in ["HIGH", "CRITICAL"]
+            and threat_level in ["SAFE", "LOW"]
+        ):
 
-        if mode == "performance":
-            mode = "balanced"
+            latency_optimization = True
 
-    elif threat_level == "MEDIUM":
+            latency_reason = (
+                "High latency with low threat - "
+                "optimized for performance"
+            )
 
-        mode = "high_security"
+            if security_strategy == "HYBRID":
 
-    elif threat_level == "HIGH":
+                security_strategy = "PQC"
+                kem = "ML-KEM-768"
+                signature = "Dilithium3"
 
-        mode = "high_security"
+            elif security_strategy == "PQC":
 
-    if original_mode != mode:
-        threat_override = True
+                security_strategy = "CLASSICAL"
+                kem = "ML-KEM-512"
+                signature = "Dilithium2"
 
-    # ------------------------------
-    # SAME LOGIC AS YOUR ORIGINAL
-    # ------------------------------
+    elif context_profile == "MISSION_CRITICAL":
 
-    if mode == "performance":
-        kem = "ML-KEM-512"
-    elif mode == "balanced":
-        kem = "ML-KEM-768"
-    else:
-        kem = "ML-KEM-1024"
-
-    if memory > 70 and cpu < 60:
-        kem = "FrodoKEM-640-AES"
-
-    if threat_level == "HIGH":
-
-        kem = "ML-KEM-1024"
-
-        threat_override = True
-
-    if mode == "performance":
-        signature = "Dilithium2"
-    elif mode == "balanced":
-        signature = "Dilithium3"
-    else:
-        signature = "SPHINCS+-SHAKE-128f-simple"
-
-    if threat_level == "HIGH":
-        signature = "SPHINCS+-SHAKE-128f-simple"
-    # ------------------------------
-    # Security Strategy
-    # ------------------------------
-
-    if threat_level == "SAFE":
-        security_strategy = "CLASSICAL"
-
-    elif threat_level in ["LOW", "MEDIUM"]:
-        security_strategy = "PQC"
-
-    else:
-        security_strategy = "HYBRID"
-
-    print(threat_data)
+        latency_reason = (
+            "Mission Critical profile - "
+            "security prioritized over latency"
+        )
 
     return {
     "execution": execution,
-    "mode": mode,
-
+    "mode": policy["security_mode"],
     "security_strategy": security_strategy,
-
     "kem": kem,
     "signature": signature,
+    "threat_override": policy["threat_override"],
 
-    "threat_profile":
-        threat_data["threat_profile"],
+    "context_profile": policy["context_profile"],
+    "context_priority": policy["context_priority"],
+    "context_description": policy["context_description"],
 
-    "threat_score":
-        threat_data["threat_score"],
+    "threat_profile": threat_data["threat_profile"],
+    "threat_score": threat_data["threat_score"],
+    "threat_level": threat_data["threat_level"],
+    "threat_indicators": threat_data["indicators"],
+    "latency_optimization":
+        latency_optimization,
 
-    "threat_level":
-        threat_data["threat_level"],
+    "latency_reason":
+        latency_reason,
 
-    "threat_override":
-        threat_override,
-
-    "threat_indicators":
-        threat_data["indicators"]
-}
+    **energy,
+    **latency
+    }

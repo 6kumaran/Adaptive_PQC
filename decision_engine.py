@@ -1,7 +1,9 @@
 from iot_device import IoTDevice
 import time
 import random
-
+from adaptive_security_policy import apply_security_policy
+from energy_model import estimate_energy
+from latency_model import estimate_latency
 def assess_threat(threat_profile="AUTO"):
 
     import random
@@ -67,7 +69,7 @@ def assess_threat(threat_profile="AUTO"):
         "indicators": indicators
     }
 
-def decide_execution(device_status,threat_profile="AUTO",threat_data=None):
+def decide_execution(device_status,threat_profile="AUTO",threat_data=None,context_profile="BALANCED"):
     
 
     battery = device_status["battery"]
@@ -76,7 +78,6 @@ def decide_execution(device_status,threat_profile="AUTO",threat_data=None):
     network = device_status["network"]
     if threat_data is None:
         threat_data = assess_threat(threat_profile)
-    threat_override = False
 
     score = 0
 
@@ -122,95 +123,102 @@ def decide_execution(device_status,threat_profile="AUTO",threat_data=None):
     else:
         mode = "performance"
     
-    # ------------------------------
-    # Threat-Aware Security Override
-    # ------------------------------
+    policy = apply_security_policy(
+    battery=battery,
+    cpu=cpu,
+    memory=memory,
+    security_mode=mode,
+    threat_data=threat_data,
+    context_profile=context_profile
+    )
+    energy = estimate_energy(
+    cpu_usage=cpu,
+    memory_usage=memory,
+    network_quality=device_status["network"],
+    security_strategy=policy["security_strategy"],
+    kem_algorithm=policy["kem"],
+    signature_algorithm=policy["signature"],
+    execution_location=execution,
+    )
+    latency = estimate_latency(
+        cpu_usage=cpu,
+        memory_usage=memory,
+        network_quality=device_status["network"],
+        execution_location=execution,
+    )
+    # --------------------------------
+    # Latency-Aware Optimization
+    # --------------------------------
 
+    security_strategy = policy["security_strategy"]
+    kem = policy["kem"]
+    signature = policy["signature"]
+
+    latency_optimization = False
+    latency_reason = "Latency optimization not applied"
+
+    latency_category = latency["latency_category"]
     threat_level = threat_data["threat_level"]
 
-    original_mode = mode
+    if (
+        context_profile != "MISSION_CRITICAL"
+    ):
 
-    if threat_level == "LOW":
+        if (
+            latency_category in ["HIGH", "CRITICAL"]
+            and threat_level in ["SAFE", "LOW"]
+        ):
 
-        if mode == "performance":
-            mode = "balanced"
+            latency_optimization = True
 
-    elif threat_level == "MEDIUM":
+            latency_reason = (
+                "High latency with low threat - "
+                "optimized for performance"
+            )
 
-        mode = "high_security"
+            if security_strategy == "HYBRID":
 
-    elif threat_level == "HIGH":
+                security_strategy = "PQC"
+                kem = "ML-KEM-768"
+                signature = "Dilithium3"
 
-        mode = "high_security"
+            elif security_strategy == "PQC":
 
-    if original_mode != mode:
-        threat_override = True
-    # ------------------------------
-    # Crypto Strategy (Stage 2)
-    # ------------------------------
+                security_strategy = "CLASSICAL"
+                kem = "ML-KEM-512"
+                signature = "Dilithium2"
 
-    if threat_level == "SAFE":
-        security_strategy = "CLASSICAL"
+    elif context_profile == "MISSION_CRITICAL":
 
-    elif threat_level in ["LOW", "MEDIUM"]:
-        security_strategy = "PQC"
-
-    else:   # HIGH
-        security_strategy = "HYBRID"
-
-    # ------------------------------
-    # KEM Selection
-    # ------------------------------
-    if mode == "performance":
-        kem = "ML-KEM-512"
-    elif mode == "balanced":
-        kem = "ML-KEM-768"
-    else:
-        kem = "ML-KEM-1024"
-
-    # Use Frodo if memory is high but CPU moderate
-    if memory > 70 and cpu < 60:
-        kem = "FrodoKEM-640-AES"
-    
-    if threat_level == "HIGH":
-
-        kem = "ML-KEM-1024"
-        signature = "SPHINCS+-SHAKE-128f-simple"
-
-        threat_override = True
-
-    # ------------------------------
-    # Signature Selection
-    # ------------------------------
-    if mode == "performance":
-        signature = "Dilithium2"
-    elif mode == "balanced":
-        signature = "Dilithium3"
-    else:
-        signature = "SPHINCS+-SHAKE-128f-simple"
+        latency_reason = (
+            "Mission Critical profile - "
+            "security prioritized over latency"
+        )
 
     return {
-    "score": score,
     "execution": execution,
-    "mode": mode,
-    # Stage 1
+    "mode": policy["security_mode"],
     "security_strategy": security_strategy,
     "kem": kem,
     "signature": signature,
+    "threat_override": policy["threat_override"],
 
-    "threat_override": threat_override,
+    "context_profile": policy["context_profile"],
+    "context_priority": policy["context_priority"],
+    "context_description": policy["context_description"],
 
-    "threat_profile":
-        threat_data["threat_profile"],
+    "threat_profile": threat_data["threat_profile"],
+    "threat_score": threat_data["threat_score"],
+    "threat_level": threat_data["threat_level"],
+    "threat_indicators": threat_data["indicators"],
+    "latency_optimization":
+        latency_optimization,
 
-    "threat_score":
-        threat_data["threat_score"],
+    "latency_reason":
+        latency_reason,
 
-    "threat_level":
-        threat_data["threat_level"],
-
-    "threat_indicators":
-        threat_data["indicators"]
+    **energy,
+    **latency
     }
 
 
@@ -224,7 +232,6 @@ if __name__ == "__main__":
     for _ in range(5):
         status = device.get_device_status()
         decision = decide_execution(status)
-
         print("Device:", status)
         print("Decision:", decision)
         print("-" * 40)

@@ -1,0 +1,22 @@
+{
+    "status": "success",
+    "execution_time_ms": 5.06,
+    "execution": "edge",
+    "security_strategy": "CLASSICAL",
+    "battery": 62.15,
+    "cpu": 84.99,
+    "memory": 81.52,
+    "mode": "performance",
+    "kem_used": "ML-KEM-512",
+    "signature_used": "Dilithium2",
+    "threat_profile": "SAFE",
+    "threat_score": 20,
+    "threat_level": "SAFE",
+    "threat_override": false,
+    "context_profile": "BALANCED",
+    "context_priority": "BALANCED",
+    "context_description": "General-purpose adaptive security profile.",
+    "engine": "ML-Based",
+    "record_type": "execution",
+    "timestamp": "2026-07-06T06:06:15.608345"
+}
