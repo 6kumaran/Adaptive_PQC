@@ -11,6 +11,7 @@ from decision_engine import (
     decide_execution,
     assess_threat
 )
+from quantum_readiness import calculate_quantum_readiness
 from secure_channel import (
     send_secure_message,
     SecurityTestMode
@@ -160,6 +161,13 @@ def run_execution(decision, battery, cpu, memory):
     "latency_reason":
         decision.get("latency_reason"),
     })
+    # ----------------------------------------
+    # Quantum Readiness Assessment
+    # ----------------------------------------
+
+    assessment = calculate_quantum_readiness(result)
+
+    result.update(assessment)
     return result
 
 def apply_protocol_threat_events(threat_score, threat_indicators, secure_result):
@@ -253,22 +261,96 @@ def display_decision(decision):
 # -----------------------------------
 # Premium UI
 # -----------------------------------
-st.set_page_config(page_title="Adaptive PQC Dashboard", layout="wide")
+st.set_page_config(
+    page_title="Adaptive Secure Edge–Cloud PQC Framework",
+    page_icon="🔐",
+    layout="wide"
+)
+
 st.markdown("""
 <style>
-.main-title{
-padding-top:1rem;
-font-size:32px;
-font-weight:bold;
-color:#00FFD1;
-text-align:center;
-}
+
+/* ---------- Main Layout ---------- */
+
 .block-container{
-padding-top:1rem;
+    padding-top:1.2rem;
+    padding-bottom:2rem;
 }
+
+/* ---------- Main Title ---------- */
+
+.main-title{
+    font-size:36px;
+    font-weight:700;
+    color:#00FFD1;
+    text-align:center;
+    margin-bottom:0.2rem;
+}
+
+.sub-title{
+    text-align:center;
+    color:#A8B2C1;
+    font-size:16px;
+    margin-bottom:2rem;
+}
+
+/* ---------- Section Headers ---------- */
+
+.section-title{
+    font-size:24px;
+    font-weight:600;
+    color:#FFFFFF;
+    padding-top:0.5rem;
+    padding-bottom:0.6rem;
+    border-bottom:2px solid #00FFD1;
+    margin-top:1.2rem;
+    margin-bottom:1rem;
+}
+
+/* ---------- Streamlit Metric Cards ---------- */
+
+div[data-testid="stMetric"]{
+    background-color:#1B1F2A;
+    border:1px solid #2C3240;
+    border-radius:14px;
+    padding:15px;
+    transition:0.3s;
+}
+
+div[data-testid="stMetric"]:hover{
+    border-color:#00FFD1;
+    transform:translateY(-2px);
+}
+
+/* ---------- Buttons ---------- */
+
+.stButton>button{
+    border-radius:10px;
+    font-weight:600;
+    height:42px;
+}
+
+/* ---------- Expanders ---------- */
+
+details{
+    border-radius:10px;
+}
+
 </style>
 """, unsafe_allow_html=True)
-st.markdown('<p class="main-title">🔐 Adaptive PQC Premium Dashboard</p>', unsafe_allow_html=True)
+
+st.markdown(
+"""
+<div class="main-title">
+Adaptive Secure Edge–Cloud Post-Quantum Cryptography Framework
+</div>
+
+<div class="sub-title">
+Research Prototype Dashboard
+</div>
+""",
+unsafe_allow_html=True
+)
 # -----------------------------------
 # Decision Mode Toggle
 # -----------------------------------
@@ -296,6 +378,10 @@ context_profile = st.selectbox(
         "ENERGY_SAVING",
         "MISSION_CRITICAL"
     ]
+)
+st.markdown(
+    '<div class="section-title">⚙️ Application Configuration</div>',
+    unsafe_allow_html=True
 )
 # -----------------------------------
 # Refresh Button
@@ -358,101 +444,170 @@ kem = decision["kem"]
 signature = decision["signature"]
 mode = decision["execution"]
 # -----------------------------------
-# Metrics
+# Runtime Dashboard
 # -----------------------------------
-c1,c2,c3,c4 = st.columns(4)
-c1.metric("🔋 Battery", f"{battery}%")
-c2.metric("🧠 CPU", f"{cpu}%")
-c3.metric("💾 Memory", f"{memory}%")
-c4.metric("📶 Network", network)
-# -----------------------------------
-# Threat Monitor
-# -----------------------------------
-st.markdown("---")
-st.subheader("🛡 Threat Monitor")
-t1, t2 = st.columns(2)
-st.info(
-    f"Current Threat Profile: "
-    f"{decision.get('threat_profile', 'AUTO')}"
-)
-st.info(
-    f"Current Context Profile: "
-    f"{decision.get('context_profile', 'BALANCED')}"
-)
 
-st.caption(
-    decision.get(
-        "context_description",
-        ""
+with st.container(border=True):
+
+    st.markdown(
+        "## 🖥 Runtime Dashboard"
     )
-)
-if decision.get("threat_override", False):
-    st.error(
-        "⚠ Threat Override Active "
-        "- Security Elevated"
+
+    st.caption(
+        "Current IoT device status and adaptive security assessment."
     )
-with t1:
-    st.metric(
-        "Threat Score",
-        st.session_state.threat_state["score"]
-    )
-with t2:
-    st.metric(
-        "Threat Level",
-        st.session_state.threat_state["level"]
-    )
-indicators = st.session_state.threat_state["indicators"]
-if indicators:
-    st.warning(
-        "Active Threat Indicators"
-    )
-    for item in indicators:
-        st.write("⚠️", item)
-else:
-    st.success(
-        "No Threat Indicators Detected"
-    )
-# -----------------------------------
-# Decision
-# -----------------------------------
-# Single full-width Decision section
-st.subheader("🧠 Decision")
-if decision_mode == "Compare Both":
-    col1, col2 = st.columns(2)
-    with col1:
-        st.caption("Rule-Based")
-        display_decision(rule_decision)
-    with col2:
-        st.caption("ML-Based")
-        display_decision(ml_decision)
-else:
-    display_decision(decision)
-st.markdown("---")
-st.markdown(f"""
-**Decision Engine:** {decision_mode}
-""")
-if decision["security_strategy"] == "HYBRID":
-    st.info("🔀 Classical Signature: ECDSA-P256 + PQC Signature")
-with st.expander("🔍 Advanced Decision Details"):
-    if decision_mode == "Compare Both":
-        st.json({"rule": rule_decision, "ml": ml_decision})
+
+    st.markdown("### 💻 Live Device Status")
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        st.metric("🔋 Battery", f"{battery}%")
+
+    with c2:
+        st.metric("🧠 CPU", f"{cpu}%")
+
+    with c3:
+        st.metric("💾 Memory", f"{memory}%")
+
+    with c4:
+        st.metric("📶 Network", network)
+
+    st.divider()
+
+    st.markdown("### 🛡 Threat Monitor")
+
+    top1, top2 = st.columns(2)
+
+    with top1:
+        st.metric(
+            "Threat Profile",
+            decision.get(
+                "threat_profile",
+                "AUTO"
+            )
+        )
+
+    with top2:
+        st.metric(
+            "Context Profile",
+            decision.get(
+                "context_profile",
+                "BALANCED"
+            )
+        )
+
+    if decision.get("context_description"):
+        st.caption(
+            decision["context_description"]
+        )
+
+    t1, t2 = st.columns(2)
+
+    with t1:
+        st.metric(
+            "Threat Score",
+            st.session_state.threat_state["score"]
+        )
+
+    with t2:
+        st.metric(
+            "Threat Level",
+            st.session_state.threat_state["level"]
+        )
+
+    if decision.get("threat_override", False):
+        st.error(
+            "⚠ Threat Override Active"
+        )
+
+    indicators = st.session_state.threat_state[
+        "indicators"
+    ]
+
+    if indicators:
+
+        st.warning(
+            "Active Threat Indicators"
+        )
+
+        for indicator in indicators:
+            st.write(
+                f"⚠️ {indicator}"
+            )
+
     else:
-        st.json(decision)
-execute_clicked = st.button("▶ Execute Adaptive PQC", key="execute_main")
+
+        st.success(
+            "No Threat Indicators Detected"
+        )
+# -----------------------------------
+# Adaptive Decision Dashboard
+# -----------------------------------
+
+with st.container(border=True):
+
+    st.markdown("## 🧠 Adaptive Decision Engine")
+    st.caption(
+        "Adaptive cryptographic decision generated from the current device, threat, and context state."
+    )
+    # -----------------------------------
+    # Decision
+    # -----------------------------------
+    # Single full-width Decision section
+    if decision_mode == "Compare Both":
+        col1, col2 = st.columns(2)
+        with col1:
+            st.caption("Rule-Based")
+            display_decision(rule_decision)
+        with col2:
+            st.caption("ML-Based")
+            display_decision(ml_decision)
+    else:
+        display_decision(decision)
+    st.markdown("---")
+    if decision["security_strategy"] == "HYBRID":
+        st.markdown("#### 🔐 Classical Security")
+
+        st.info(
+            "Classical Signature: ECDSA-P256 + PQC Signature"
+        )
+    execute_clicked = st.button(
+        "🚀 Execute Adaptive PQC Framework",
+        key="execute_main"
+    )
 # -----------------------------------
 # Execute
 # -----------------------------------
 if execute_clicked:
-    st.subheader("⚡ Performance Comparison")
-    # Run both engines
     rule_result = run_execution(rule_decision, battery, cpu, memory)
     ml_result = run_execution(ml_decision, battery, cpu, memory)
+    st.subheader("⚡ Performance Comparison")
+    st.caption(
+        "Energy consumption trends and resource-aware security analysis."
+    )
+    summary1, summary2, summary3 = st.columns(3)
+
+    summary1.metric(
+        "Rule Time",
+        f"{rule_result['execution_time_ms']} ms"
+    )
+    
+    summary2.metric(
+        "ML Time",
+        f"{ml_result['execution_time_ms']} ms"
+    )
+    
+    summary3.metric(
+        "Difference",
+        f"{abs(rule_result['execution_time_ms'] - ml_result['execution_time_ms']):.2f} ms"
+    )
+    # Run both engines
     col1, col2 = st.columns(2)
     with col1:
         st.caption("Rule-Based")
         st.markdown(f"""
         **Time:** {rule_result['execution_time_ms']} ms  
-        **Status:** {rule_result.get('status', 'unknown')} 
         """)
         st.metric(
             "⚡ Estimated Energy",
@@ -463,13 +618,34 @@ if execute_clicked:
             "Energy Level",
             rule_result["energy_level"]
         )
+        score = rule_result["quantum_readiness_score"]
+
+        st.metric(
+            "Quantum Readiness",
+            f"{score}/100"
+        )
+
+        st.progress(score / 100)
+
+        st.caption(
+            f"Level: {rule_result['quantum_readiness_level']}"
+        )
         with st.expander("🔍 Details"):
+
+            st.markdown("### ✅ Recommendations")
+        
+            for rec in rule_result["recommendations"]:
+                st.success(rec)
+        
+            st.markdown("---")
+        
+            st.markdown("### Raw Execution Result")
+        
             st.json(rule_result)
     with col2:
         st.caption("ML-Based")
         st.markdown(f"""
         **Time:** {ml_result['execution_time_ms']} ms  
-        **Status:** {ml_result.get('status', 'unknown')}  
         """)
         st.metric(
             "⚡ Estimated Energy",
@@ -480,20 +656,67 @@ if execute_clicked:
             "Energy Level",
             ml_result["energy_level"]
         )
+        score = ml_result["quantum_readiness_score"]
+
+        st.metric(
+            "Quantum Readiness",
+            f"{score}/100"
+        )
+
+        st.progress(score / 100)
+
+        st.caption(
+            f"Level: {ml_result['quantum_readiness_level']}"
+        )
         with st.expander("🔍 Details"):
+
+            st.markdown("### ✅ Recommendations")
+        
+            for rec in ml_result["recommendations"]:
+                st.success(rec)
+        
+            st.markdown("---")
+        
+            st.markdown("### Raw Execution Result")
+        
             st.json(ml_result)
+
     # Compare
     try:
         rule_time = rule_result["execution_time_ms"]
         ml_time = ml_result["execution_time_ms"]
         if rule_time and ml_time:
             diff = round(abs(rule_time - ml_time), 2)
-            if rule_time < ml_time:
-                st.success(f"🏆 Rule-Based is faster by {diff} ms")
-            elif ml_time < rule_time:
-                st.success(f"🏆 ML-Based is faster by {diff} ms")
-            else:
-                st.info("⚖️ Both have equal performance")
+            st.markdown("---")
+
+            winner_col1 = st.container()
+
+            with winner_col1:
+            
+                if rule_time < ml_time:
+                
+                    st.success(
+                        f"🏆 Winner: Rule-Based ({diff} ms faster)"
+                    )
+
+                elif ml_time < rule_time:
+                
+                    st.success(
+                        f"🏆 Winner: ML-Based ({diff} ms faster)"
+                    )
+
+                else:
+                
+                    st.info(
+                        "⚖ Both engines performed equally."
+                    )
+
+            with winner_col2:
+            
+                st.metric(
+                    "Difference",
+                    f"{diff} ms"
+                )
     except:
         st.warning("⚠️ Could not compare (Edge server may be down)")
     # Save result
@@ -502,25 +725,41 @@ if execute_clicked:
     result["record_type"] = "execution"
     save_result(result)
 st.markdown("---")
-st.subheader("🔐 Live Secure Communication Demo")
-secure_message = st.text_area(
-    "Message To Protect",
-    "Patient Heart Rate = 92 BPM"
-)
-security_test = st.selectbox(
-    "🧪 Security Test",
-    [
-        SecurityTestMode.NORMAL,
-        SecurityTestMode.REPLAY,
-        SecurityTestMode.EXPIRED,
-        SecurityTestMode.TAMPERED
-    ],
-    index=0
-)
-secure_demo = st.button(
-    "🚀 Send Secure Message",
-    key="secure_demo"
-)
+with st.container(border=True):
+
+    st.markdown("## 🔐 Secure Communication")
+
+    st.caption(
+        "Encrypt, transmit, verify, and validate secure messages using the adaptive PQC framework."
+    )
+    secure_message = st.text_area(
+        "Message To Protect",
+        "Patient Heart Rate = 92 BPM"
+    )
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        security_test = st.selectbox(
+            "🧪 Security Test",
+            [
+                SecurityTestMode.NORMAL,
+                SecurityTestMode.REPLAY,
+                SecurityTestMode.EXPIRED,
+                SecurityTestMode.TAMPERED
+            ],
+            index=0
+        )
+
+    with col2:
+        st.write("")      # spacing
+        st.write("")
+
+        secure_demo = st.button(
+            "🚀 Send Secure Message",
+            key="secure_demo",
+            use_container_width=True
+        )
 if secure_demo:
     result = send_secure_message(
         secure_message,
@@ -554,8 +793,9 @@ if secure_demo:
         st.session_state.threat_state["level"] = "SAFE"
     if result["status"] == "success":
         st.success(
-            "Secure Transmission Complete"
+            "✅ Secure Transmission Complete"
         )
+        st.markdown("### Transmission Result")
         c1, c2 = st.columns(2)
         with c1:
             st.metric(
@@ -579,40 +819,44 @@ if secure_demo:
                 )
                 else "FAILED"
             )
-        st.markdown(
-            f"**Security Strategy:** "
-            f"{result['security_strategy']}"
-        )
-        st.markdown(
-            f"**Selected KEM:** "
-            f"{result['kem']}"
-        )
-        st.markdown(
-            f"**PQC Signature:** "
-            f"{result['signature']}"
-        )
+        st.markdown("### Cryptography")
+
+        k1, k2, k3 = st.columns(3)
+
+        with k1:
+            st.metric(
+                "Strategy",
+                result["security_strategy"]
+            )
+
+        with k2:
+            st.metric(
+                "KEM",
+                result["kem"]
+            )
+
+        with k3:
+            st.metric(
+                "Signature",
+                result["signature"]
+            )
         if result["security_strategy"] == "HYBRID":
             st.markdown(
                 "**Classical Signature:** ECDSA-P256"
             )
-        st.markdown(
-            "**Encrypted Payload:**"
-        )
-        st.code(
-            result["ciphertext"][:120]
-            + "..."
-        )
-        st.markdown(
-            "**Recovered Message:**"
-        )
+        with st.expander("Encrypted Payload"):
+
+            st.code(
+                result["ciphertext"][:120] + "..."
+            )
+        st.markdown("### Recovered Message")
+
         st.success(
             result["response"].get(
                 "decrypted_message",
                 "N/A"
             )
         )
-        st.subheader("Debug Response")
-        st.json(result)
         secure_log = {
             "record_type": "secure_channel",
             "protocol_version": "2.0",
@@ -702,70 +946,91 @@ if secure_demo:
     "📝 Tampered",
     stats["tampered"]
     )
-    total = sum(stats.values())
-    if total > 0:
-        chart = pd.DataFrame({
-        "Events": stats
-        })
-        st.bar_chart(chart)
 # -----------------------------------
 # Multi-Device Simulation
 # -----------------------------------
 st.markdown("---")
-st.subheader("🌐 Multi-Device Simulation")
-if st.button("📈 Generate 500 Demo Runs"):
-    all_results = []
-    for _ in range(50):
-        batch = simulate_devices(
-            10,
-            use_ml=False,
-            simulation_mode=True
+
+with st.container(border=True):
+
+    st.markdown("## 🌐 Multi-Device Simulation")
+
+    st.caption(
+        "Simulate adaptive cryptographic decisions across multiple IoT devices."
+    )
+    
+    st.markdown("### Simulation Configuration")
+
+    cfg1, cfg2 = st.columns(2)
+
+    with cfg1:
+        num_devices = st.slider("Number of Devices", 1, 50, 10)
+
+    with cfg2:
+        sim_mode = st.selectbox(
+            "Decision Engine",
+            ["Rule-Based", "ML-Based"]
         )
-        all_results.extend(batch)
-    save_simulation_results(all_results)
-    st.success(
-        f"{len(all_results)} records generated"
-    )
-col1, col2 = st.columns(2)
-with col1:
-    num_devices = st.slider("Number of Devices", 1, 50, 10)
-with col2:
-    sim_mode = st.selectbox(
-        "Decision Engine",
-        ["Rule-Based", "ML-Based"]
-    )
-run_sim = st.button("🚀 Run Simulation", key="multi_sim")
-if run_sim:
-    use_ml = True if sim_mode == "ML-Based" else False
-    results = simulate_devices(num_devices, use_ml,simulation_mode=True)
-    for r in results:
-        if r["execution"] == "edge":
-            st.json(r)
-            break
-    save_simulation_results(results)
-    df = pd.DataFrame(results)
-    st.success(f"Simulation completed for {num_devices} devices")
-    # -----------------------------------
-    # Summary Metrics
-    # -----------------------------------
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Edge Executions", (df["execution"] == "edge").sum())
-    with c2:
-        st.metric("Local Executions", (df["execution"] == "local").sum())
-    with c3:
-        st.metric("Avg Time (ms)", round(df["execution_time_ms"].mean(), 2))
-    # -----------------------------------
-    # Charts
-    # -----------------------------------
-    # -----------------------------------
-    # Optional Detailed View
-    # -----------------------------------
-    with st.expander("🔍 View Detailed Results"):
-        st.dataframe(df)
+
+    btn1, btn2 = st.columns(2)
+
+    with btn1:
+        if st.button("📈 Generate 500 Demo Runs"):
+            all_results = []
+            for _ in range(50):
+                batch = simulate_devices(
+                    10,
+                    use_ml=False,
+                    simulation_mode=True
+                )
+                all_results.extend(batch)
+            save_simulation_results(all_results)
+            st.success(
+                f"{len(all_results)} records generated"
+            )
+
+    with btn2:
+        run_sim = st.button(
+            "🚀 Run Simulation",
+            key="multi_sim"
+        )
+    if run_sim:
+        use_ml = True if sim_mode == "ML-Based" else False
+        results = simulate_devices(num_devices, use_ml,simulation_mode=True)
+        save_simulation_results(results)
+        df = pd.DataFrame(results)
+        st.success(f"Simulation completed for {num_devices} devices")
+        # -----------------------------------
+        # Summary Metrics
+        # -----------------------------------
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Devices Simulated", len(df))
+        with c2:
+            st.metric("Edge Executions", (df["execution"] == "edge").sum())
+        with c3:
+            st.metric("Local Executions", (df["execution"] == "local").sum())
+        with c4:
+            st.metric("Avg Execution Time (ms)", round(df["execution_time_ms"].mean(), 2))
+        # -----------------------------------
+        # Charts
+        # -----------------------------------
+        # -----------------------------------
+        # Optional Detailed View
+        # -----------------------------------
+        with st.expander("📋 Device Simulation Results"):
+            st.dataframe(df)
+            for r in results:
+                if r["execution"] == "edge":
+                    st.json(r)
+                    break
 # -----------------------------------
 # Analytics
 # -----------------------------------
+st.markdown(
+    '<div class="section-title">📈 Analytics</div>',
+    unsafe_allow_html=True
+)
 with st.expander("📊 Analytics", expanded=False):
     st.subheader("📊 Live Analytics")
     files = glob.glob("results/*.json")
@@ -784,8 +1049,6 @@ with st.expander("📊 Analytics", expanded=False):
                 pass
     if rows:
         df = pd.DataFrame(rows)
-        st.write(df.tail(3))
-        st.write(df.columns.tolist())
         analytics_view = st.selectbox(
             "Analytics View",
             [
@@ -829,172 +1092,204 @@ with st.expander("📊 Analytics", expanded=False):
             1,
             len(df) + 1
         )
-        if len(df) > 500:
-            df = df.tail(500)
-        # -----------------------------------
-        # Energy Summary
-        # -----------------------------------
+        MAX_HISTORY = 200
 
-        if "estimated_energy" in df.columns:
+        if len(df) > MAX_HISTORY:
+            df = df.tail(MAX_HISTORY)
 
-            energy_df = df.dropna(
-                subset=["estimated_energy"]
-            )
-
-            if not energy_df.empty:
-
-                st.subheader("⚡ Energy Analytics")
-
-                c1, c2, c3 = st.columns(3)
-
-                c1.metric(
-                    "Average Energy",
-                    f"{energy_df['estimated_energy'].mean():.2f}"
-                )
-
-                c2.metric(
-                    "Highest Energy",
-                    f"{energy_df['estimated_energy'].max():.2f}"
-                )
-
-                c3.metric(
-                    "Lowest Energy",
-                    f"{energy_df['estimated_energy'].min():.2f}"
-                )
-        # -----------------------------------
-        # Network Latency Analytics
-        # -----------------------------------
-
-        if "predicted_latency_ms" in df.columns:
-        
-            latency_df = df.dropna(
-                subset=["predicted_latency_ms"]
-            )
-
-            if not latency_df.empty:
             
-                st.markdown("---")
-                st.subheader("🌐 Network Latency Analytics")
+        with st.container(border=True):
 
-                l1, l2, l3 = st.columns(3)
+            st.markdown("## 🌐 Network Analytics")
 
-                with l1:
-                    st.metric(
-                        "Average Latency",
-                        f"{latency_df['predicted_latency_ms'].mean():.2f} ms"
-                    )
-
-                with l2:
-                    st.metric(
-                        "Highest Latency",
-                        f"{latency_df['predicted_latency_ms'].max():.2f} ms"
-                    )
-
-                with l3:
-                    st.metric(
-                        "Lowest Latency",
-                        f"{latency_df['predicted_latency_ms'].min():.2f} ms"
-                    )
-        st.caption("Predicted Latency Trend")
-
-        if "predicted_latency_ms" in df.columns:
-        
-            latency_df = df.dropna(
-                subset=["predicted_latency_ms"]
-            ).copy()
-
-            if not latency_df.empty:
-            
-                latency_df["rolling_avg"] = (
-                    latency_df["predicted_latency_ms"]
-                    .rolling(
-                        window=20,
-                        min_periods=1
-                    )
-                    .mean()
-                )
-
-                latency_df = latency_df.set_index(
-                    "run_id"
-                )
-
-                st.line_chart(
-                    latency_df[
-                        [
-                            "predicted_latency_ms",
-                            "rolling_avg"
-                        ]
-                    ]
-                )
-        # -----------------------------------
-        # Average Latency by Security Strategy
-        # -----------------------------------
-
-        if (
-            "security_strategy" in latency_df.columns
-            and "predicted_latency_ms" in latency_df.columns
-        ):
-
-            st.caption("Average Latency by Security Strategy")
-
-            strategy_latency = (
-                latency_df.groupby(
-                    "security_strategy"
-                )["predicted_latency_ms"]
-                .mean()
-                .reset_index()
-            )
-
-            fig = px.bar(
-                strategy_latency,
-                x="security_strategy",
-                y="predicted_latency_ms",
-                color="security_strategy",
-                title="Average Latency by Security Strategy",
-            )
-
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="latency_strategy_chart",
-            )
-        # -----------------------------------
-        # Latency Optimization Statistics
-        # -----------------------------------
-
-        if "latency_optimization" in latency_df.columns:
-        
             st.caption(
-                "Latency Optimization Statistics"
+                "Latency trends, strategy comparison and optimization overview."
+            )
+            # -----------------------------------
+            # Network Latency Analytics
+            # -----------------------------------
+
+            if "predicted_latency_ms" in df.columns:
+            
+                latency_df = df.dropna(
+                    subset=["predicted_latency_ms"]
+                )
+
+                if not latency_df.empty:
+
+                    l1, l2, l3 = st.columns(3)
+
+                    with l1:
+                        st.metric(
+                            "Average Latency",
+                            f"{latency_df['predicted_latency_ms'].mean():.2f} ms"
+                        )
+
+                    with l2:
+                        st.metric(
+                            "Peak Latency",
+                            f"{latency_df['predicted_latency_ms'].max():.2f} ms"
+                        )
+
+                    with l3:
+                        st.metric(
+                            "Minimum Latency",
+                            f"{latency_df['predicted_latency_ms'].min():.2f} ms"
+                        )
+            st.markdown("#### Predicted Latency Trend")
+
+            if "predicted_latency_ms" in df.columns:
+            
+                latency_df = df.dropna(
+                    subset=["predicted_latency_ms"]
+                ).copy()
+
+                if not latency_df.empty:
+                
+                    latency_df["rolling_avg"] = (
+                        latency_df["predicted_latency_ms"]
+                        .rolling(
+                            window=20,
+                            min_periods=1
+                        )
+                        .mean()
+                    )
+
+                    latency_df = latency_df.set_index(
+                        "run_id"
+                    )
+
+                    st.line_chart(
+                        latency_df[
+                            [
+                                "predicted_latency_ms",
+                                "rolling_avg"
+                            ]
+                        ]
+                    )
+            # -----------------------------------
+            # Average Latency by Security Strategy
+            # -----------------------------------
+
+            col1, col2 = st.columns(
+                [1, 1],
+                gap="small"
             )
 
-            optimization_counts = (
-                latency_df[
-                    "latency_optimization"
-                ]
-                .astype(str)
-                .value_counts()
-                .reset_index()
-            )
+            with col1:
+            
+                if (
+                    "security_strategy" in latency_df.columns
+                    and "predicted_latency_ms" in latency_df.columns
+                ):
 
-            optimization_counts.columns = [
-                "Optimization",
-                "Count",
-            ]
+                    strategy_latency = (
+                        latency_df.groupby(
+                            "security_strategy"
+                        )["predicted_latency_ms"]
+                        .mean()
+                        .reset_index()
+                    )
 
-            fig = px.bar(
-                optimization_counts,
-                x="Optimization",
-                y="Count",
-                color="Optimization",
-                title="Latency Optimization Statistics",
-            )
+                    fig = px.bar(
+                        strategy_latency,
+                        x="security_strategy",
+                        y="predicted_latency_ms",
+                        color="security_strategy",
+                        title="Latency by Security Strategy"
+                    )
+                    fig.update_layout(
+                        height=320,
 
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="latency_optimization_chart",
-            )
+                        font=dict(
+                            size=15
+                        ),
+
+                        title_font=dict(
+                            size=20
+                        ),
+
+                        xaxis=dict(
+                            tickfont=dict(size=13),
+                            title_font=dict(size=15)
+                        ),
+
+                        yaxis=dict(
+                            tickfont=dict(size=13),
+                            title_font=dict(size=15)
+                        ),
+
+                        margin=dict(
+                            l=20,
+                            r=20,
+                            t=40,
+                            b=20
+                        ),
+                        legend_title_text=None,
+
+                        legend=dict(
+                            font=dict(size=13),
+                            orientation="h",
+                            y=-0.25,
+                            x=0.5,
+                            xanchor="center"
+                        )
+                    )
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True,
+                        key="latency_strategy_chart",
+                    )
+
+            with col2:
+            
+                if "latency_optimization" in latency_df.columns:
+
+                    optimization_counts = (
+                        latency_df["latency_optimization"]
+                        .map({
+                            True: "Optimized",
+                            False: "Not Optimized"
+                        })
+                        .value_counts()
+                        .reset_index()
+                    )
+                    
+                    optimization_counts.columns = [
+                        "Optimization",
+                        "Count",
+                    ]
+
+                    fig = px.pie(
+                        optimization_counts,
+                        names="Optimization",
+                        values="Count",
+                        hole=0.60,
+                        title="Latency Optimization Distribution"
+                    )
+
+                    fig.update_traces(
+                        textposition="inside",
+                        textinfo="percent+label"
+                    )
+
+                    fig.update_layout(
+                        height=320,
+                        margin=dict(
+                            l=20,
+                            r=20,
+                            t=40,
+                            b=20,
+                        ),
+                        showlegend=True,
+                    )
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True,
+                        key="latency_optimization_chart",
+                    )
         # -----------------------------------
         # Multi-Edge Load Balancing Analytics
         # -----------------------------------
@@ -1004,15 +1299,14 @@ with st.expander("📊 Analytics", expanded=False):
             edge_df = df.dropna(
                 subset=["selected_edge"]
             )
-            st.write("Total rows:", len(df))
-            st.write("Edge rows:", len(edge_df))
-            st.write(edge_df[["selected_edge", "edge_status"]].head())
 
             if not edge_df.empty:
             
-                st.markdown("---")
                 st.subheader(
                     "🌍 Multi-Edge Load Balancing Analytics"
+                )
+                st.caption(
+                    "Edge selection, workload distribution and resource utilization."
                 )
 
                 c1, c2, c3 = st.columns(3)
@@ -1034,100 +1328,396 @@ with st.expander("📊 Analytics", expanded=False):
                         "Average Edge Load",
                         f"{edge_df['edge_load'].mean():.2f}"
                     )
-            if not edge_df.empty:
-                st.caption("Selected Edge Distribution")
-    
-                selected_edge_counts = (
-                    edge_df["selected_edge"]
-                    .value_counts()
-                    .reset_index(name="Count")
-                    .rename(columns={"selected_edge": "Selected Edge"})
-                )
-    
-                fig = px.bar(
-                    selected_edge_counts,
-                    x="Selected Edge",
-                    y="Count",
-                    color="Selected Edge",
-                )
-    
-                st.plotly_chart(
-                    fig,
-                    width="stretch",
-                    key="selected_edge_distribution",
-                )
-                st.caption("Edge Status Distribution")
-    
+            col1, col2 = st.columns([1, 1], gap="small")
+            with col1:
+                if not edge_df.empty:
+
+                    selected_edge_counts = (
+                        edge_df["selected_edge"]
+                        .value_counts()
+                        .reset_index(name="Count")
+                        .rename(columns={"selected_edge": "Selected Edge"})
+                    )
+
+                    fig = px.bar(
+                        selected_edge_counts,
+                        x="Selected Edge",
+                        y="Count",
+                        color="Selected Edge",
+                        title="Selected Edge Distribution"
+                    )
+                    fig.update_layout(
+                        height=300,
+                        showlegend=False,
+                        margin=dict(
+                            l=20,
+                            r=20,
+                            t=40,
+                            b=20,
+                        )
+                    )
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True,
+                        key="selected_edge_distribution",
+                    )
+            with col2:
+
                 status_counts = (
                     edge_df["edge_status"]
                     .value_counts()
                     .reset_index(name="Count")
                     .rename(columns={"edge_status": "Status"})
                 )
-    
+
                 fig = px.bar(
                     status_counts,
                     x="Status",
                     y="Count",
                     color="Status",
+                    title="Edge Status Distribution"
                 )
-    
+                fig.update_layout(
+                    height=300,
+                    showlegend=False,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    )
+                )
+
                 st.plotly_chart(
                     fig,
-                    width="stretch",
+                    use_container_width=True,
                     key="edge_status_distribution",
                 )
-                st.caption("Average Selected Edge Resources")
-    
-                resource_df = pd.DataFrame({
-                    "Metric": [
-                        "CPU",
-                        "Memory",
-                        "Latency",
-                        "Load"
-                    ],
-                    "Value": [
-                        edge_df["edge_cpu"].mean(),
-                        edge_df["edge_memory"].mean(),
-                        edge_df["edge_latency"].mean(),
-                        edge_df["edge_load"].mean() * 100
-                    ]
-                })
-    
-                fig = px.bar(
-                    resource_df,
-                    x="Metric",
-                    y="Value",
-                    color="Metric",
+            st.markdown("#### Average Selected Edge Resources")
+            resource_df = pd.DataFrame({
+                "Metric": [
+                    "CPU",
+                    "Memory",
+                    "Latency",
+                    "Load"
+                ],
+                "Value": [
+                    edge_df["edge_cpu"].mean(),
+                    edge_df["edge_memory"].mean(),
+                    edge_df["edge_latency"].mean(),
+                    edge_df["edge_load"].mean() * 100
+                ]
+            })
+            fig = px.bar(
+                resource_df,
+                x="Metric",
+                y="Value",
+                color="Metric",
+            )
+            fig.update_layout(
+                height=320,
+                showlegend=False,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=40,
+                    b=20
                 )
-    
-                st.plotly_chart(
-                    fig,
-                    width="stretch",
-                    key="edge_resource_summary",
+            )
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+                key="edge_resource_summary",
+            )
+        # -----------------------------------
+        # Quantum Readiness Analytics
+        # -----------------------------------
+
+        if "quantum_readiness_score" in df.columns:
+        
+            qr_df = df.dropna(
+                subset=["quantum_readiness_score"]
+            ).copy()
+
+            if not qr_df.empty:
+            
+                st.subheader("⚛ Quantum Readiness Analytics")
+                st.caption(
+                    "Assessment of post-quantum security readiness across simulation runs."
                 )
-        a,b = st.columns(2)
+
+                c1, c2, c3 = st.columns(3)
+
+                with c1:
+                    st.metric(
+                        "Average Score",
+                        f"{qr_df['quantum_readiness_score'].mean():.1f}/100"
+                    )
+
+                with c2:
+                    st.metric(
+                        "Peak Score",
+                        int(qr_df["quantum_readiness_score"].max())
+                    )
+
+                with c3:
+                    st.metric(
+                        "Minimum Score",
+                        int(qr_df["quantum_readiness_score"].min())
+                    )
+
+        col1, col2 = st.columns([1,1], gap="small")
+        with col1:
+            st.markdown("#### Quantum Readiness Distribution")
+
+            level_counts = (
+                qr_df["quantum_readiness_level"]
+                .value_counts()
+                .reset_index()
+            )
+
+            level_counts.columns = [
+                "Readiness",
+                "Count"
+            ]
+
+            fig = px.pie(
+                level_counts,
+                names="Readiness",
+                values="Count",
+                hole=0.60,
+                color="Readiness",
+            )
+
+            fig.update_traces(
+                textposition="inside",
+                textinfo="percent+label"
+            )
+
+            fig.update_layout(
+                height=320,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=40,
+                    b=20,
+                ),
+                legend=dict(
+                    orientation="v",
+                    y=0.5,
+                    yanchor="middle",
+                    x=1.02,
+                )
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+                key="quantum_readiness_distribution"
+            )
+
+
+        with col2:        
+            st.caption("Average Component Scores")
+
+            component_df = pd.DataFrame(
+                qr_df["component_scores"].tolist()
+            )
+
+            avg_components = (
+                component_df.mean()
+                .reset_index()
+            )
+
+            avg_components.columns = [
+                "Component",
+                "Average Score"
+            ]
+
+            fig = px.line_polar(
+                avg_components,
+                r="Average Score",
+                theta="Component",
+                line_close=True,
+            )
+
+            fig.update_traces(
+                fill="toself",
+                line=dict(width=4),
+            )
+
+            fig.update_layout(
+                height=320,
+                showlegend=False,
+
+                font=dict(
+                    size=14
+                ),
+
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=40,
+                    b=20,
+                ),
+
+                polar=dict(
+                    bgcolor="rgba(0,0,0,0)",
+
+                    angularaxis=dict(
+                        tickfont=dict(
+                            size=13
+                        )
+                    ),
+
+                    radialaxis=dict(
+                        visible=True,
+                        tickfont=dict(
+                            size=12
+                        ),
+                        range=[
+                            0,
+                            max(
+                                30,
+                                avg_components["Average Score"].max() + 2
+                            ),
+                        ],
+                    ),
+                ),
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+                key="quantum_component_scores"
+            )
+            st.info(
+                "Component Weights • Cryptography: 30 | Security: 20 | Resources: 15 | Network: 10 | Energy: 10 | Execution: 10 | Context: 5"
+            )
+
+
+
+        st.markdown("#### Quantum Readiness Trend")
+
+        trend_df = qr_df.copy()
+
+        trend_df["rolling_avg"] = (
+            trend_df["quantum_readiness_score"]
+            .rolling(
+                window=20,
+                min_periods=1
+            )
+            .mean()
+        )
+
+        trend_df = trend_df.set_index("run_id")
+
+        st.line_chart(
+            trend_df[
+                [
+                    "quantum_readiness_score",
+                    "rolling_avg"
+                ]
+            ]
+        )
+        a,b = st.columns([1,1], gap="small")
         with a:
             st.caption("Local vs Edge")
-            st.bar_chart(df["execution"].value_counts())
+
+            execution_counts = (
+                df["execution"]
+                .value_counts()
+                .reset_index()
+            )
+
+            execution_counts.columns = [
+                "Execution",
+                "Count"
+            ]
+
+            fig = px.pie(
+                execution_counts,
+                names="Execution",
+                values="Count",
+                hole=0.60,
+                color="Execution",
+            )
+
+            fig.update_traces(
+                textposition="inside",
+                textinfo="percent+label"
+            )
+
+            fig.update_layout(
+                height=320,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=40,
+                    b=20,
+                ),
+                legend=dict(
+                    orientation="v",
+                    y=0.5,
+                    yanchor="middle",
+                    x=1.02,
+                )
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+                key="execution_distribution"
+            )
         with b:
             st.caption("KEM Usage")
+            fig.update_layout(
+                height=300,
+                showlegend=False,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=40,
+                    b=20,
+                )
+            )
             st.bar_chart(df["kem_used"].value_counts())
-        c,d = st.columns(2)
+        c,d = st.columns([1,1], gap="small")
         with c:
             if "security_strategy" in df.columns:
                 st.caption("Security Strategy Distribution")
+                fig.update_layout(
+                    height=320,
+                    showlegend=False,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    )
+                )
                 st.bar_chart(
                     df["security_strategy"].value_counts()
                 )
+        with d:
             if "signature_used" in df.columns:
                 st.caption("Signature Usage")
+                fig.update_layout(
+                    height=320,
+                    showlegend=False,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    )
+                )
                 st.bar_chart(
                     df["signature_used"].value_counts()
                 )
-        with d:
-            st.caption("Avg Execution Time")
-            st.bar_chart(df.groupby("execution")["execution_time_ms"].mean())
+        st.caption("Avg Execution Time")
+        st.bar_chart(df.groupby("execution")["execution_time_ms"].mean())
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(
                 df["timestamp"]
@@ -1151,11 +1741,6 @@ with st.expander("📊 Analytics", expanded=False):
                 )
                 .mean()
             )
-            st.write(
-            trend_df[
-                ["timestamp", "execution_time_ms"]
-            ].head(20)
-            )
             trend_df = trend_df.set_index(
                 "run_id"
             )
@@ -1167,158 +1752,227 @@ with st.expander("📊 Analytics", expanded=False):
                     ]
                 ]
             )
-        st.caption("Estimated Energy Trend")
 
-        if (
-            "estimated_energy" in df.columns
-        ):
 
-            energy_df = df.dropna(
-                subset=["estimated_energy"]
-            ).copy()
+        with st.container(border=True):
 
-            if not energy_df.empty:
-            
-                energy_df["rolling_avg"] = (
-                    energy_df["estimated_energy"]
-                    .rolling(
-                        window=20,
-                        min_periods=1
+            st.markdown("## ⚡ Energy Analytics")
+
+            st.caption(
+                "Energy consumption trends and resource-aware security analysis."
+            )
+            if "estimated_energy" in df.columns:
+
+                energy_df = df.dropna(subset=["estimated_energy"])
+
+                if not energy_df.empty:
+                
+                    c1, c2, c3 = st.columns(3)
+
+                    with c1:
+                        st.metric(
+                            "Average Energy",
+                            f"{energy_df['estimated_energy'].mean():.2f}"
+                        )
+
+                    with c2:
+                        st.metric(
+                            "Peak Energy",
+                            f"{energy_df['estimated_energy'].max():.2f}"
+                        )
+
+                    with c3:
+                        st.metric(
+                            "Minimum Energy",
+                            f"{energy_df['estimated_energy'].min():.2f}"
+                        )
+            st.markdown("#### Estimated Energy Trend")
+
+            if (
+                "estimated_energy" in df.columns
+            ):
+
+                energy_df = df.dropna(
+                    subset=["estimated_energy"]
+                ).copy()
+
+                if not energy_df.empty:
+                
+                    energy_df["rolling_avg"] = (
+                        energy_df["estimated_energy"]
+                        .rolling(
+                            window=20,
+                            min_periods=1
+                        )
+                        .mean()
                     )
-                    .mean()
-                )
 
-                energy_df = energy_df.set_index(
-                    "run_id"
-                )
+                    energy_df = energy_df.set_index(
+                        "run_id"
+                    )
 
-                st.line_chart(
-                    energy_df[
-                        [
-                            "estimated_energy",
-                            "rolling_avg"
+                    st.line_chart(
+                        energy_df[
+                            [
+                                "estimated_energy",
+                                "rolling_avg"
+                            ]
                         ]
-                    ]
+                    )
+            col1, col2 = st.columns([1,1], gap="small")
+
+            with col1:
+            
+                st.markdown("#### Threat Level vs Estimated Energy")
+
+                if (
+                    "threat_level" in df.columns
+                    and "estimated_energy" in df.columns
+                ):
+
+                    threat_energy = (
+                        df.groupby("threat_level")["estimated_energy"]
+                        .mean()
+                        .reindex(
+                            ["SAFE", "LOW", "MEDIUM", "HIGH"]
+                        )
+                        .reset_index()
+                    )
+
+                    fig = px.bar(
+                        threat_energy,
+                        x="threat_level",
+                        y="estimated_energy",
+                        color="threat_level",
+                    )
+
+                    fig.update_layout(
+                        height=300,
+                        showlegend=False,
+                        margin=dict(
+                            l=20,
+                            r=20,
+                            t=40,
+                            b=20,
+                        )
+                    )
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True,
+                        key="threat_energy_chart"
+                    )
+
+            with col2:
+            
+                st.markdown("#### Application Context vs Estimated Energy")
+
+                if (
+                    "context_profile" in df.columns
+                    and "estimated_energy" in df.columns
+                ):
+
+                    context_energy = (
+                        df.groupby("context_profile")["estimated_energy"]
+                        .mean()
+                        .reset_index()
+                    )
+
+                    fig = px.bar(
+                        context_energy,
+                        x="context_profile",
+                        y="estimated_energy",
+                        color="context_profile",
+                    )
+
+                    fig.update_layout(
+                        height=300,
+                        showlegend=False,
+                        margin=dict(
+                            l=20,
+                            r=20,
+                            t=40,
+                            b=20,
+                        )
+                    )
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True,
+                        key="context_energy_chart"
+                    )
+            st.markdown("#### Security Strategy vs Estimated Energy")
+
+            if (
+                "security_strategy" in df.columns
+                and "estimated_energy" in df.columns
+            ):
+
+                strategy_energy = (
+                    df.groupby("security_strategy")["estimated_energy"]
+                    .mean()
+                    .reset_index()
                 )
-        st.caption("Threat Level vs Estimated Energy")
 
-        if (
-            "threat_level" in df.columns
-            and "estimated_energy" in df.columns
-        ):
-
-            threat_energy = (
-                df.groupby("threat_level")["estimated_energy"]
-                .mean()
-                .reindex(
-                    ["SAFE", "LOW", "MEDIUM", "HIGH"]
+                fig = px.bar(
+                    strategy_energy,
+                    x="security_strategy",
+                    y="estimated_energy",
+                    color="security_strategy",
+                    # title="Average Estimated Energy by Security Strategy"
                 )
-                .reset_index()
-            )
-
-            fig = px.bar(
-                threat_energy,
-                x="threat_level",
-                y="estimated_energy",
-                color="threat_level",
-                title="Average Estimated Energy by Threat Level"
-            )
-
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="threat_energy_chart"
-            )
-        st.caption("Application Context vs Estimated Energy")
-
-        if (
-            "context_profile" in df.columns
-            and "estimated_energy" in df.columns
-        ):
-
-            context_energy = (
-                df.groupby("context_profile")["estimated_energy"]
-                .mean()
-                .reset_index()
-            )
-
-            fig = px.bar(
-                context_energy,
-                x="context_profile",
-                y="estimated_energy",
-                color="context_profile",
-                title="Average Estimated Energy by Application Context"
-            )
-
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="context_energy_chart"
-            )
-        st.caption("Security Strategy vs Estimated Energy")
-
-        if (
-            "security_strategy" in df.columns
-            and "estimated_energy" in df.columns
-        ):
-
-            strategy_energy = (
-                df.groupby("security_strategy")["estimated_energy"]
-                .mean()
-                .reset_index()
-            )
-
-            fig = px.bar(
-                strategy_energy,
-                x="security_strategy",
-                y="estimated_energy",
-                color="security_strategy",
-                title="Average Estimated Energy by Security Strategy"
-            )
-
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="strategy_energy_chart"
-            )
-        st.caption("CPU Used Per Run")
-        if "cpu" in df.columns:
-            cpu_df = df.dropna(
-                subset=["cpu"]
-            )
-            if not cpu_df.empty:
-                cpu_df = cpu_df.set_index(
-                    "run_id"
+                fig.update_layout(
+                    height=300,
+                    showlegend=False,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    )
                 )
-                st.line_chart(
-                    cpu_df["cpu"]
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    key="strategy_energy_chart"
                 )
-        st.caption("Memory Used Per Run")
-        if "memory" in df.columns:
-            mem_df = df.dropna(
-                subset=["memory"]
+            st.markdown("#### Resource Trends")
+
+            cpu_tab, mem_tab, batt_tab = st.tabs(
+                [
+                    "🖥 CPU",
+                    "💾 Memory",
+                    "🔋 Battery"
+                ]
             )
-            if not mem_df.empty:
-                mem_df = mem_df.set_index(
-                    "run_id"
-                )
-                st.line_chart(
-                    mem_df["memory"]
-                )
-        st.caption("Battery Level Per Run")
-        if "battery" in df.columns:
-            batt_df = df.dropna(
-                subset=["battery"]
-            )
-            if not batt_df.empty:
-                batt_df = batt_df.set_index(
-                    "run_id"
-                )
-                st.line_chart(
-                    batt_df["battery"]
-                )
-        st.markdown("---")
+
+            with cpu_tab:
+                if "cpu" in df.columns:
+                    cpu_df = df.dropna(subset=["cpu"])
+                    if not cpu_df.empty:
+                        cpu_df = cpu_df.set_index("run_id")
+                        st.line_chart(cpu_df["cpu"])
+
+            with mem_tab:
+                if "memory" in df.columns:
+                    mem_df = df.dropna(subset=["memory"])
+                    if not mem_df.empty:
+                        mem_df = mem_df.set_index("run_id")
+                        st.line_chart(mem_df["memory"])
+
+            with batt_tab:
+                if "battery" in df.columns:
+                    batt_df = df.dropna(subset=["battery"])
+                    if not batt_df.empty:
+                        batt_df = batt_df.set_index("run_id")
+                        st.line_chart(batt_df["battery"])
+
+
         st.subheader("🛡 Threat Analytics")
+        st.caption(
+            "Threat evolution, override behavior and adaptive security decisions."
+        )
         valid_modes = [
             "performance",
             "balanced",
@@ -1333,7 +1987,7 @@ with st.expander("📊 Analytics", expanded=False):
         if "threat_score" in threat_df.columns:
             left, right = st.columns([3.5,1])
             with left:
-                st.caption("Threat Score Trend")
+                st.markdown("#### Threat Score Trend")
                 score_df = threat_df.dropna(
                     subset=["threat_score"]
                 )
@@ -1389,18 +2043,23 @@ with st.expander("📊 Analytics", expanded=False):
                     fig.update_layout(
                     xaxis_title="Run ID",
                     yaxis_title="Threat Score",
-                    height=450,
+                    height=320,
                     legend=dict(
                         orientation="v",
                         y=1,
                         x=1.02,
                         yanchor="top"
                     ),
-                    margin=dict(r=120)
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    )
                     )
                     st.plotly_chart(
                         fig,
-                        width="stretch",
+                        use_container_width=True,
                         key="threat_score_trend"
                     )
             with right:
@@ -1418,71 +2077,102 @@ with st.expander("📊 Analytics", expanded=False):
                 st.metric("🟡 LOW (26-49)", summary["LOW"])
                 st.metric("🟢 SAFE (<25)", summary["SAFE"])
                 st.metric("📊 Total Runs", len(threat_df))
-        if "threat_override" in threat_df.columns:
-            st.caption(
-                "Threat Override Statistics"
-            )
-            override_counts = (
-                threat_df[
-                    "threat_override"
+        col1, col2 = st.columns([1, 1], gap="small")
+        with col1:
+            if "threat_override" in threat_df.columns:
+                st.markdown("#### Threat Override Statistics")
+                override_counts = (
+                    threat_df["threat_override"]
+                    .map({
+                        True: "Override Active",
+                        False: "Normal Decision"
+                    })
+                    .value_counts()
+                    .reset_index()
+                )
+
+                override_counts.columns = [
+                    "Threat Override",
+                    "Count"
                 ]
-                .astype(str)
-                .value_counts()
-                .reset_index()
-            )
-            override_counts.columns = [
-                "Threat Override",
-                "Count"
-            ]
-            fig = px.bar(
-                override_counts,
-                x="Threat Override",
-                y="Count",
-                color="Threat Override",
-                color_discrete_map={
-                    "True": "#ef4444",     # Red
-                    "False": "#6b7280"     # Gray
-                }
-            )
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="override_statistics"
-            )
-        if (
-            "threat_level" in threat_df.columns
-            and
-            "mode" in threat_df.columns
-        ):
-            st.caption(
-                "Threat Level vs Security Mode"
-            )
-            threat_mode = pd.crosstab(
-                threat_df["threat_level"],
-                threat_df["mode"]
-            )
-            fig = px.bar(
-                threat_mode,
-                barmode="stack",
-                color_discrete_sequence=[
-                    "#22c55e",   # Performance
-                    "#f59e0b",   # Balanced
-                    "#ef4444"    # High Security
-                ]
-            )
-            st.plotly_chart(
-                fig,
-                width="stretch",
-                key="threat_mode_chart"
-            )
+                fig = px.pie(
+                    override_counts,
+                    names="Threat Override",
+                    values="Count",
+                    color="Threat Override",
+                    color_discrete_map={
+                        "Override Active": "#ef4444",
+                        "Normal Decision": "#6b7280"
+                    }
+                )
+
+                fig.update_traces(
+                    textposition="inside",
+                    textinfo="percent+label"
+                )
+
+                fig.update_layout(
+                    height=320,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    ),
+                    legend=dict(
+                        orientation="v",
+                        y=0.5,
+                        yanchor="middle",
+                        x=1.02,
+                    )
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    key="override_statistics"
+                )
+        with col2:
+            if (
+                "threat_level" in threat_df.columns
+                and
+                "mode" in threat_df.columns
+            ):
+                st.markdown("#### Threat Level vs Security Mode")
+                threat_mode = pd.crosstab(
+                    threat_df["threat_level"],
+                    threat_df["mode"]
+                )
+                fig = px.bar(
+                    threat_mode,
+                    barmode="stack",
+                    color_discrete_sequence=[
+                        "#22c55e",   # Performance
+                        "#f59e0b",   # Balanced
+                        "#ef4444"    # High Security
+                    ]
+                )
+                fig.update_layout(
+                    height=300,
+                    showlegend=False,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=40,
+                        b=20,
+                    )
+                )
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    key="threat_mode_chart"
+                )
         if (
             "threat_level" in threat_df.columns
             and
             "kem_used" in threat_df.columns
         ):  
-            st.caption(
-                "Threat Level vs KEM Selection"
-            )
+            st.markdown("#### Threat Level vs KEM Selection")
             threat_kem = pd.crosstab(
                 threat_df["threat_level"],
                 threat_df["kem_used"]
@@ -1497,9 +2187,19 @@ with st.expander("📊 Analytics", expanded=False):
                     "#8b5cf6"    # FrodoKEM
                 ]
             )
+            fig.update_layout(
+                height=300,
+                showlegend=True,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=40,
+                    b=20,
+                )
+            )
             st.plotly_chart(
                 fig,
-                width="stretch",
+                use_container_width=True,
                 key="threat_kem_chart"
             )
     else:

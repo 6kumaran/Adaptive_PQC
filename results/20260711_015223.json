@@ -1,0 +1,21 @@
+{
+    "record_type": "secure_channel",
+    "protocol_version": "2.0",
+    "timestamp": "2026-07-11T01:52:23.132099",
+    "kem_used": "ML-KEM-512",
+    "signature_used": "Dilithium2",
+    "execution_time_ms": 34.74,
+    "ciphertext_size": 60,
+    "signature_size": 3228,
+    "security": {
+        "strategy": "CLASSICAL",
+        "mode": "performance",
+        "kem": "ML-KEM-512",
+        "signature": "Dilithium2"
+    },
+    "status": "success",
+    "signature_verified": true,
+    "context_profile": "BALANCED",
+    "context_priority": "BALANCED",
+    "context_description": "General-purpose adaptive security profile."
+}

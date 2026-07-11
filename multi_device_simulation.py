@@ -5,6 +5,7 @@ from pqc_module import kyber_keygen, kyber_encrypt, kyber_decrypt
 import requests
 import time
 import random
+from quantum_readiness import calculate_quantum_readiness
 
 EDGE_SERVER_URL = "http://127.0.0.1:8000/offload"
 
@@ -203,6 +204,9 @@ def execute_device(device_id, use_ml=False):
     # "load_balancing_reason":
     #     "Lowest weighted resource score",
     }
+    assessment = calculate_quantum_readiness(result)
+
+    result.update(assessment)
 
     return result
 
