@@ -59,7 +59,6 @@ def generate_explanation(status, decision):
         explanation.append("📶 Poor network → local preferred")
     # Final decision summary
     explanation.append(f"⚙️ Final Decision → {decision['execution'].upper()} mode with {decision['mode']} security")
-
     return explanation
 def run_execution(decision, battery, cpu, memory):
     execution = decision["execution"]
@@ -164,12 +163,9 @@ def run_execution(decision, battery, cpu, memory):
     # ----------------------------------------
     # Quantum Readiness Assessment
     # ----------------------------------------
-
     assessment = calculate_quantum_readiness(result)
-
     result.update(assessment)
     return result
-
 def apply_protocol_threat_events(threat_score, threat_indicators, secure_result):
     """
     Updates the threat score and indicators based on
@@ -196,8 +192,10 @@ def apply_protocol_threat_events(threat_score, threat_indicators, secure_result)
     # Prevent overflow
     threat_score = min(threat_score, 100)
     return threat_score, threat_indicators
-
-EDGE_SERVER_URL = "http://127.0.0.1:8000/offload"
+EDGE_SERVER_URL = os.getenv(
+    "EDGE_SERVER_URL",
+    "http://127.0.0.1:8000/offload"
+)
 RESULTS_FOLDER = "results"
 os.makedirs(RESULTS_FOLDER, exist_ok=True)
 # -----------------------------------
@@ -209,7 +207,6 @@ def save_result(data):
     filepath = os.path.join(RESULTS_FOLDER, filename)
     with open(filepath, "w") as f:
         json.dump(data, f, indent=4)
-
 def save_simulation_results(results):
     base_time = datetime.now()
     for i, row in enumerate(results):
@@ -227,7 +224,6 @@ def save_simulation_results(results):
     )
     with open(filepath, "w") as f:
         json.dump(results, f, indent=4)
-        
 def display_decision(decision):
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -269,16 +265,12 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 /* ---------- Main Layout ---------- */
-
 .block-container{
     padding-top:1.2rem;
     padding-bottom:2rem;
 }
-
 /* ---------- Main Title ---------- */
-
 .main-title{
     font-size:36px;
     font-weight:700;
@@ -286,16 +278,13 @@ st.markdown("""
     text-align:center;
     margin-bottom:0.2rem;
 }
-
 .sub-title{
     text-align:center;
     color:#A8B2C1;
     font-size:16px;
     margin-bottom:2rem;
 }
-
 /* ---------- Section Headers ---------- */
-
 .section-title{
     font-size:24px;
     font-weight:600;
@@ -306,9 +295,7 @@ st.markdown("""
     margin-top:1.2rem;
     margin-bottom:1rem;
 }
-
 /* ---------- Streamlit Metric Cards ---------- */
-
 div[data-testid="stMetric"]{
     background-color:#1B1F2A;
     border:1px solid #2C3240;
@@ -316,35 +303,27 @@ div[data-testid="stMetric"]{
     padding:15px;
     transition:0.3s;
 }
-
 div[data-testid="stMetric"]:hover{
     border-color:#00FFD1;
     transform:translateY(-2px);
 }
-
 /* ---------- Buttons ---------- */
-
 .stButton>button{
     border-radius:10px;
     font-weight:600;
     height:42px;
 }
-
 /* ---------- Expanders ---------- */
-
 details{
     border-radius:10px;
 }
-
 </style>
 """, unsafe_allow_html=True)
-
 st.markdown(
 """
 <div class="main-title">
 Adaptive Secure Edge–Cloud Post-Quantum Cryptography Framework
 </div>
-
 <div class="sub-title">
 Research Prototype Dashboard
 </div>
@@ -423,7 +402,6 @@ else:
 # -----------------------------------
 if "current_decision" not in st.session_state:
     st.session_state.current_decision = decision
-
 st.session_state.current_decision = decision
 # -----------------------------------
 # Sync Threat State
@@ -446,39 +424,26 @@ mode = decision["execution"]
 # -----------------------------------
 # Runtime Dashboard
 # -----------------------------------
-
 with st.container(border=True):
-
     st.markdown(
         "## 🖥 Runtime Dashboard"
     )
-
     st.caption(
         "Current IoT device status and adaptive security assessment."
     )
-
     st.markdown("### 💻 Live Device Status")
-
     c1, c2, c3, c4 = st.columns(4)
-
     with c1:
         st.metric("🔋 Battery", f"{battery}%")
-
     with c2:
         st.metric("🧠 CPU", f"{cpu}%")
-
     with c3:
         st.metric("💾 Memory", f"{memory}%")
-
     with c4:
         st.metric("📶 Network", network)
-
     st.divider()
-
     st.markdown("### 🛡 Threat Monitor")
-
     top1, top2 = st.columns(2)
-
     with top1:
         st.metric(
             "Threat Profile",
@@ -487,7 +452,6 @@ with st.container(border=True):
                 "AUTO"
             )
         )
-
     with top2:
         st.metric(
             "Context Profile",
@@ -496,57 +460,44 @@ with st.container(border=True):
                 "BALANCED"
             )
         )
-
     if decision.get("context_description"):
         st.caption(
             decision["context_description"]
         )
-
     t1, t2 = st.columns(2)
-
     with t1:
         st.metric(
             "Threat Score",
             st.session_state.threat_state["score"]
         )
-
     with t2:
         st.metric(
             "Threat Level",
             st.session_state.threat_state["level"]
         )
-
     if decision.get("threat_override", False):
         st.error(
             "⚠ Threat Override Active"
         )
-
     indicators = st.session_state.threat_state[
         "indicators"
     ]
-
     if indicators:
-
         st.warning(
             "Active Threat Indicators"
         )
-
         for indicator in indicators:
             st.write(
                 f"⚠️ {indicator}"
             )
-
     else:
-
         st.success(
             "No Threat Indicators Detected"
         )
 # -----------------------------------
 # Adaptive Decision Dashboard
 # -----------------------------------
-
 with st.container(border=True):
-
     st.markdown("## 🧠 Adaptive Decision Engine")
     st.caption(
         "Adaptive cryptographic decision generated from the current device, threat, and context state."
@@ -568,7 +519,6 @@ with st.container(border=True):
     st.markdown("---")
     if decision["security_strategy"] == "HYBRID":
         st.markdown("#### 🔐 Classical Security")
-
         st.info(
             "Classical Signature: ECDSA-P256 + PQC Signature"
         )
@@ -587,17 +537,14 @@ if execute_clicked:
         "Energy consumption trends and resource-aware security analysis."
     )
     summary1, summary2, summary3 = st.columns(3)
-
     summary1.metric(
         "Rule Time",
         f"{rule_result['execution_time_ms']} ms"
     )
-    
     summary2.metric(
         "ML Time",
         f"{ml_result['execution_time_ms']} ms"
     )
-    
     summary3.metric(
         "Difference",
         f"{abs(rule_result['execution_time_ms'] - ml_result['execution_time_ms']):.2f} ms"
@@ -613,34 +560,26 @@ if execute_clicked:
             "⚡ Estimated Energy",
             f"{rule_result['estimated_energy']:.2f}"
         )
-
         st.metric(
             "Energy Level",
             rule_result["energy_level"]
         )
         score = rule_result["quantum_readiness_score"]
-
         st.metric(
             "Quantum Readiness",
             f"{score}/100"
         )
-
         st.progress(score / 100)
-
         st.caption(
             f"Level: {rule_result['quantum_readiness_level']}"
         )
         with st.expander("🔍 Details"):
-
             st.markdown("### ✅ Recommendations")
-        
             for rec in rule_result["recommendations"]:
                 st.success(rec)
         
             st.markdown("---")
-        
             st.markdown("### Raw Execution Result")
-        
             st.json(rule_result)
     with col2:
         st.caption("ML-Based")
@@ -651,36 +590,26 @@ if execute_clicked:
             "⚡ Estimated Energy",
             f"{ml_result['estimated_energy']:.2f}"
         )
-
         st.metric(
             "Energy Level",
             ml_result["energy_level"]
         )
         score = ml_result["quantum_readiness_score"]
-
         st.metric(
             "Quantum Readiness",
             f"{score}/100"
         )
-
         st.progress(score / 100)
-
         st.caption(
             f"Level: {ml_result['quantum_readiness_level']}"
         )
         with st.expander("🔍 Details"):
-
             st.markdown("### ✅ Recommendations")
-        
             for rec in ml_result["recommendations"]:
                 st.success(rec)
-        
             st.markdown("---")
-        
             st.markdown("### Raw Execution Result")
-        
             st.json(ml_result)
-
     # Compare
     try:
         rule_time = rule_result["execution_time_ms"]
@@ -688,31 +617,21 @@ if execute_clicked:
         if rule_time and ml_time:
             diff = round(abs(rule_time - ml_time), 2)
             st.markdown("---")
-
             winner_col1 = st.container()
-
             with winner_col1:
-            
                 if rule_time < ml_time:
-                
                     st.success(
                         f"🏆 Winner: Rule-Based ({diff} ms faster)"
                     )
-
                 elif ml_time < rule_time:
-                
                     st.success(
                         f"🏆 Winner: ML-Based ({diff} ms faster)"
                     )
-
                 else:
-                
                     st.info(
                         "⚖ Both engines performed equally."
                     )
-
             with winner_col2:
-            
                 st.metric(
                     "Difference",
                     f"{diff} ms"
@@ -726,9 +645,7 @@ if execute_clicked:
     save_result(result)
 st.markdown("---")
 with st.container(border=True):
-
     st.markdown("## 🔐 Secure Communication")
-
     st.caption(
         "Encrypt, transmit, verify, and validate secure messages using the adaptive PQC framework."
     )
@@ -736,9 +653,7 @@ with st.container(border=True):
         "Message To Protect",
         "Patient Heart Rate = 92 BPM"
     )
-
     col1, col2 = st.columns([2, 1])
-
     with col1:
         security_test = st.selectbox(
             "🧪 Security Test",
@@ -750,11 +665,9 @@ with st.container(border=True):
             ],
             index=0
         )
-
     with col2:
         st.write("")      # spacing
         st.write("")
-
         secure_demo = st.button(
             "🚀 Send Secure Message",
             key="secure_demo",
@@ -820,21 +733,17 @@ if secure_demo:
                 else "FAILED"
             )
         st.markdown("### Cryptography")
-
         k1, k2, k3 = st.columns(3)
-
         with k1:
             st.metric(
                 "Strategy",
                 result["security_strategy"]
             )
-
         with k2:
             st.metric(
                 "KEM",
                 result["kem"]
             )
-
         with k3:
             st.metric(
                 "Signature",
@@ -850,7 +759,6 @@ if secure_demo:
                 result["ciphertext"][:120] + "..."
             )
         st.markdown("### Recovered Message")
-
         st.success(
             result["response"].get(
                 "decrypted_message",
@@ -890,7 +798,6 @@ if secure_demo:
             }
         save_result(secure_log)
     else:
-
         st.error(
             result["error"]
         )
@@ -950,30 +857,21 @@ if secure_demo:
 # Multi-Device Simulation
 # -----------------------------------
 st.markdown("---")
-
 with st.container(border=True):
-
     st.markdown("## 🌐 Multi-Device Simulation")
-
     st.caption(
         "Simulate adaptive cryptographic decisions across multiple IoT devices."
     )
-    
     st.markdown("### Simulation Configuration")
-
     cfg1, cfg2 = st.columns(2)
-
     with cfg1:
         num_devices = st.slider("Number of Devices", 1, 50, 10)
-
     with cfg2:
         sim_mode = st.selectbox(
             "Decision Engine",
             ["Rule-Based", "ML-Based"]
         )
-
     btn1, btn2 = st.columns(2)
-
     with btn1:
         if st.button("📈 Generate 500 Demo Runs"):
             all_results = []
@@ -988,7 +886,6 @@ with st.container(border=True):
             st.success(
                 f"{len(all_results)} records generated"
             )
-
     with btn2:
         run_sim = st.button(
             "🚀 Run Simulation",
@@ -1093,59 +990,43 @@ with st.expander("📊 Analytics", expanded=False):
             len(df) + 1
         )
         MAX_HISTORY = 200
-
         if len(df) > MAX_HISTORY:
             df = df.tail(MAX_HISTORY)
-
-            
         with st.container(border=True):
-
             st.markdown("## 🌐 Network Analytics")
-
             st.caption(
                 "Latency trends, strategy comparison and optimization overview."
             )
             # -----------------------------------
             # Network Latency Analytics
             # -----------------------------------
-
             if "predicted_latency_ms" in df.columns:
-            
                 latency_df = df.dropna(
                     subset=["predicted_latency_ms"]
                 )
-
                 if not latency_df.empty:
-
                     l1, l2, l3 = st.columns(3)
-
                     with l1:
                         st.metric(
                             "Average Latency",
                             f"{latency_df['predicted_latency_ms'].mean():.2f} ms"
                         )
-
                     with l2:
                         st.metric(
                             "Peak Latency",
                             f"{latency_df['predicted_latency_ms'].max():.2f} ms"
                         )
-
                     with l3:
                         st.metric(
                             "Minimum Latency",
                             f"{latency_df['predicted_latency_ms'].min():.2f} ms"
                         )
             st.markdown("#### Predicted Latency Trend")
-
             if "predicted_latency_ms" in df.columns:
-            
                 latency_df = df.dropna(
                     subset=["predicted_latency_ms"]
                 ).copy()
-
                 if not latency_df.empty:
-                
                     latency_df["rolling_avg"] = (
                         latency_df["predicted_latency_ms"]
                         .rolling(
@@ -1154,11 +1035,9 @@ with st.expander("📊 Analytics", expanded=False):
                         )
                         .mean()
                     )
-
                     latency_df = latency_df.set_index(
                         "run_id"
                     )
-
                     st.line_chart(
                         latency_df[
                             [
@@ -1170,19 +1049,15 @@ with st.expander("📊 Analytics", expanded=False):
             # -----------------------------------
             # Average Latency by Security Strategy
             # -----------------------------------
-
             col1, col2 = st.columns(
                 [1, 1],
                 gap="small"
             )
-
             with col1:
-            
                 if (
                     "security_strategy" in latency_df.columns
                     and "predicted_latency_ms" in latency_df.columns
                 ):
-
                     strategy_latency = (
                         latency_df.groupby(
                             "security_strategy"
@@ -1190,7 +1065,6 @@ with st.expander("📊 Analytics", expanded=False):
                         .mean()
                         .reset_index()
                     )
-
                     fig = px.bar(
                         strategy_latency,
                         x="security_strategy",
@@ -1200,25 +1074,20 @@ with st.expander("📊 Analytics", expanded=False):
                     )
                     fig.update_layout(
                         height=320,
-
                         font=dict(
                             size=15
                         ),
-
                         title_font=dict(
                             size=20
                         ),
-
                         xaxis=dict(
                             tickfont=dict(size=13),
                             title_font=dict(size=15)
                         ),
-
                         yaxis=dict(
                             tickfont=dict(size=13),
                             title_font=dict(size=15)
                         ),
-
                         margin=dict(
                             l=20,
                             r=20,
@@ -1226,7 +1095,6 @@ with st.expander("📊 Analytics", expanded=False):
                             b=20
                         ),
                         legend_title_text=None,
-
                         legend=dict(
                             font=dict(size=13),
                             orientation="h",
@@ -1235,17 +1103,13 @@ with st.expander("📊 Analytics", expanded=False):
                             xanchor="center"
                         )
                     )
-
                     st.plotly_chart(
                         fig,
                         use_container_width=True,
                         key="latency_strategy_chart",
                     )
-
             with col2:
-            
                 if "latency_optimization" in latency_df.columns:
-
                     optimization_counts = (
                         latency_df["latency_optimization"]
                         .map({
@@ -1255,12 +1119,10 @@ with st.expander("📊 Analytics", expanded=False):
                         .value_counts()
                         .reset_index()
                     )
-                    
                     optimization_counts.columns = [
                         "Optimization",
                         "Count",
                     ]
-
                     fig = px.pie(
                         optimization_counts,
                         names="Optimization",
@@ -1268,12 +1130,10 @@ with st.expander("📊 Analytics", expanded=False):
                         hole=0.60,
                         title="Latency Optimization Distribution"
                     )
-
                     fig.update_traces(
                         textposition="inside",
                         textinfo="percent+label"
                     )
-
                     fig.update_layout(
                         height=320,
                         margin=dict(
@@ -1284,7 +1144,6 @@ with st.expander("📊 Analytics", expanded=False):
                         ),
                         showlegend=True,
                     )
-
                     st.plotly_chart(
                         fig,
                         use_container_width=True,
@@ -1293,36 +1152,28 @@ with st.expander("📊 Analytics", expanded=False):
         # -----------------------------------
         # Multi-Edge Load Balancing Analytics
         # -----------------------------------
-
         if "selected_edge" in df.columns:
-        
             edge_df = df.dropna(
                 subset=["selected_edge"]
             )
-
             if not edge_df.empty:
-            
                 st.subheader(
                     "🌍 Multi-Edge Load Balancing Analytics"
                 )
                 st.caption(
                     "Edge selection, workload distribution and resource utilization."
                 )
-
                 c1, c2, c3 = st.columns(3)
-
                 with c1:
                     st.metric(
                         "Edge Executions",
                         len(edge_df)
                     )
-
                 with c2:
                     st.metric(
                         "Average Edge Latency",
                         f"{edge_df['edge_latency'].mean():.2f} ms"
                     )
-
                 with c3:
                     st.metric(
                         "Average Edge Load",
@@ -1331,14 +1182,12 @@ with st.expander("📊 Analytics", expanded=False):
             col1, col2 = st.columns([1, 1], gap="small")
             with col1:
                 if not edge_df.empty:
-
                     selected_edge_counts = (
                         edge_df["selected_edge"]
                         .value_counts()
                         .reset_index(name="Count")
                         .rename(columns={"selected_edge": "Selected Edge"})
                     )
-
                     fig = px.bar(
                         selected_edge_counts,
                         x="Selected Edge",
@@ -1356,21 +1205,18 @@ with st.expander("📊 Analytics", expanded=False):
                             b=20,
                         )
                     )
-
                     st.plotly_chart(
                         fig,
                         use_container_width=True,
                         key="selected_edge_distribution",
                     )
             with col2:
-
                 status_counts = (
                     edge_df["edge_status"]
                     .value_counts()
                     .reset_index(name="Count")
                     .rename(columns={"edge_status": "Status"})
                 )
-
                 fig = px.bar(
                     status_counts,
                     x="Status",
@@ -1388,7 +1234,6 @@ with st.expander("📊 Analytics", expanded=False):
                         b=20,
                     )
                 )
-
                 st.plotly_chart(
                     fig,
                     use_container_width=True,
@@ -1433,55 +1278,43 @@ with st.expander("📊 Analytics", expanded=False):
         # -----------------------------------
         # Quantum Readiness Analytics
         # -----------------------------------
-
         if "quantum_readiness_score" in df.columns:
-        
             qr_df = df.dropna(
                 subset=["quantum_readiness_score"]
             ).copy()
-
             if not qr_df.empty:
-            
                 st.subheader("⚛ Quantum Readiness Analytics")
                 st.caption(
                     "Assessment of post-quantum security readiness across simulation runs."
                 )
-
                 c1, c2, c3 = st.columns(3)
-
                 with c1:
                     st.metric(
                         "Average Score",
                         f"{qr_df['quantum_readiness_score'].mean():.1f}/100"
                     )
-
                 with c2:
                     st.metric(
                         "Peak Score",
                         int(qr_df["quantum_readiness_score"].max())
                     )
-
                 with c3:
                     st.metric(
                         "Minimum Score",
                         int(qr_df["quantum_readiness_score"].min())
                     )
-
         col1, col2 = st.columns([1,1], gap="small")
         with col1:
             st.markdown("#### Quantum Readiness Distribution")
-
             level_counts = (
                 qr_df["quantum_readiness_level"]
                 .value_counts()
                 .reset_index()
             )
-
             level_counts.columns = [
                 "Readiness",
                 "Count"
             ]
-
             fig = px.pie(
                 level_counts,
                 names="Readiness",
@@ -1489,12 +1322,10 @@ with st.expander("📊 Analytics", expanded=False):
                 hole=0.60,
                 color="Readiness",
             )
-
             fig.update_traces(
                 textposition="inside",
                 textinfo="percent+label"
             )
-
             fig.update_layout(
                 height=320,
                 margin=dict(
@@ -1510,67 +1341,53 @@ with st.expander("📊 Analytics", expanded=False):
                     x=1.02,
                 )
             )
-
             st.plotly_chart(
                 fig,
                 use_container_width=True,
                 key="quantum_readiness_distribution"
             )
-
-
         with col2:        
             st.caption("Average Component Scores")
-
             component_df = pd.DataFrame(
                 qr_df["component_scores"].tolist()
             )
-
             avg_components = (
                 component_df.mean()
                 .reset_index()
             )
-
             avg_components.columns = [
                 "Component",
                 "Average Score"
             ]
-
             fig = px.line_polar(
                 avg_components,
                 r="Average Score",
                 theta="Component",
                 line_close=True,
             )
-
             fig.update_traces(
                 fill="toself",
                 line=dict(width=4),
             )
-
             fig.update_layout(
                 height=320,
                 showlegend=False,
-
                 font=dict(
                     size=14
                 ),
-
                 margin=dict(
                     l=20,
                     r=20,
                     t=40,
                     b=20,
                 ),
-
                 polar=dict(
                     bgcolor="rgba(0,0,0,0)",
-
                     angularaxis=dict(
                         tickfont=dict(
                             size=13
                         )
                     ),
-
                     radialaxis=dict(
                         visible=True,
                         tickfont=dict(
@@ -1586,7 +1403,6 @@ with st.expander("📊 Analytics", expanded=False):
                     ),
                 ),
             )
-
             st.plotly_chart(
                 fig,
                 use_container_width=True,
@@ -1595,13 +1411,8 @@ with st.expander("📊 Analytics", expanded=False):
             st.info(
                 "Component Weights • Cryptography: 30 | Security: 20 | Resources: 15 | Network: 10 | Energy: 10 | Execution: 10 | Context: 5"
             )
-
-
-
         st.markdown("#### Quantum Readiness Trend")
-
         trend_df = qr_df.copy()
-
         trend_df["rolling_avg"] = (
             trend_df["quantum_readiness_score"]
             .rolling(
@@ -1610,9 +1421,7 @@ with st.expander("📊 Analytics", expanded=False):
             )
             .mean()
         )
-
         trend_df = trend_df.set_index("run_id")
-
         st.line_chart(
             trend_df[
                 [
@@ -1624,18 +1433,15 @@ with st.expander("📊 Analytics", expanded=False):
         a,b = st.columns([1,1], gap="small")
         with a:
             st.caption("Local vs Edge")
-
             execution_counts = (
                 df["execution"]
                 .value_counts()
                 .reset_index()
             )
-
             execution_counts.columns = [
                 "Execution",
                 "Count"
             ]
-
             fig = px.pie(
                 execution_counts,
                 names="Execution",
@@ -1643,12 +1449,10 @@ with st.expander("📊 Analytics", expanded=False):
                 hole=0.60,
                 color="Execution",
             )
-
             fig.update_traces(
                 textposition="inside",
                 textinfo="percent+label"
             )
-
             fig.update_layout(
                 height=320,
                 margin=dict(
@@ -1664,7 +1468,6 @@ with st.expander("📊 Analytics", expanded=False):
                     x=1.02,
                 )
             )
-
             st.plotly_chart(
                 fig,
                 use_container_width=True,
@@ -1752,52 +1555,38 @@ with st.expander("📊 Analytics", expanded=False):
                     ]
                 ]
             )
-
-
         with st.container(border=True):
-
             st.markdown("## ⚡ Energy Analytics")
-
             st.caption(
                 "Energy consumption trends and resource-aware security analysis."
             )
             if "estimated_energy" in df.columns:
-
                 energy_df = df.dropna(subset=["estimated_energy"])
-
                 if not energy_df.empty:
-                
                     c1, c2, c3 = st.columns(3)
-
                     with c1:
                         st.metric(
                             "Average Energy",
                             f"{energy_df['estimated_energy'].mean():.2f}"
                         )
-
                     with c2:
                         st.metric(
                             "Peak Energy",
                             f"{energy_df['estimated_energy'].max():.2f}"
                         )
-
                     with c3:
                         st.metric(
                             "Minimum Energy",
                             f"{energy_df['estimated_energy'].min():.2f}"
                         )
             st.markdown("#### Estimated Energy Trend")
-
             if (
                 "estimated_energy" in df.columns
             ):
-
                 energy_df = df.dropna(
                     subset=["estimated_energy"]
                 ).copy()
-
                 if not energy_df.empty:
-                
                     energy_df["rolling_avg"] = (
                         energy_df["estimated_energy"]
                         .rolling(
@@ -1806,11 +1595,9 @@ with st.expander("📊 Analytics", expanded=False):
                         )
                         .mean()
                     )
-
                     energy_df = energy_df.set_index(
                         "run_id"
                     )
-
                     st.line_chart(
                         energy_df[
                             [
@@ -1820,16 +1607,12 @@ with st.expander("📊 Analytics", expanded=False):
                         ]
                     )
             col1, col2 = st.columns([1,1], gap="small")
-
             with col1:
-            
                 st.markdown("#### Threat Level vs Estimated Energy")
-
                 if (
                     "threat_level" in df.columns
                     and "estimated_energy" in df.columns
                 ):
-
                     threat_energy = (
                         df.groupby("threat_level")["estimated_energy"]
                         .mean()
@@ -1838,14 +1621,12 @@ with st.expander("📊 Analytics", expanded=False):
                         )
                         .reset_index()
                     )
-
                     fig = px.bar(
                         threat_energy,
                         x="threat_level",
                         y="estimated_energy",
                         color="threat_level",
                     )
-
                     fig.update_layout(
                         height=300,
                         showlegend=False,
@@ -1856,35 +1637,28 @@ with st.expander("📊 Analytics", expanded=False):
                             b=20,
                         )
                     )
-
                     st.plotly_chart(
                         fig,
                         use_container_width=True,
                         key="threat_energy_chart"
                     )
-
             with col2:
-            
                 st.markdown("#### Application Context vs Estimated Energy")
-
                 if (
                     "context_profile" in df.columns
                     and "estimated_energy" in df.columns
                 ):
-
                     context_energy = (
                         df.groupby("context_profile")["estimated_energy"]
                         .mean()
                         .reset_index()
                     )
-
                     fig = px.bar(
                         context_energy,
                         x="context_profile",
                         y="estimated_energy",
                         color="context_profile",
                     )
-
                     fig.update_layout(
                         height=300,
                         showlegend=False,
@@ -1895,25 +1669,21 @@ with st.expander("📊 Analytics", expanded=False):
                             b=20,
                         )
                     )
-
                     st.plotly_chart(
                         fig,
                         use_container_width=True,
                         key="context_energy_chart"
                     )
             st.markdown("#### Security Strategy vs Estimated Energy")
-
             if (
                 "security_strategy" in df.columns
                 and "estimated_energy" in df.columns
             ):
-
                 strategy_energy = (
                     df.groupby("security_strategy")["estimated_energy"]
                     .mean()
                     .reset_index()
                 )
-
                 fig = px.bar(
                     strategy_energy,
                     x="security_strategy",
@@ -1931,14 +1701,12 @@ with st.expander("📊 Analytics", expanded=False):
                         b=20,
                     )
                 )
-
                 st.plotly_chart(
                     fig,
                     use_container_width=True,
                     key="strategy_energy_chart"
                 )
             st.markdown("#### Resource Trends")
-
             cpu_tab, mem_tab, batt_tab = st.tabs(
                 [
                     "🖥 CPU",
@@ -1946,29 +1714,24 @@ with st.expander("📊 Analytics", expanded=False):
                     "🔋 Battery"
                 ]
             )
-
             with cpu_tab:
                 if "cpu" in df.columns:
                     cpu_df = df.dropna(subset=["cpu"])
                     if not cpu_df.empty:
                         cpu_df = cpu_df.set_index("run_id")
                         st.line_chart(cpu_df["cpu"])
-
             with mem_tab:
                 if "memory" in df.columns:
                     mem_df = df.dropna(subset=["memory"])
                     if not mem_df.empty:
                         mem_df = mem_df.set_index("run_id")
                         st.line_chart(mem_df["memory"])
-
             with batt_tab:
                 if "battery" in df.columns:
                     batt_df = df.dropna(subset=["battery"])
                     if not batt_df.empty:
                         batt_df = batt_df.set_index("run_id")
                         st.line_chart(batt_df["battery"])
-
-
         st.subheader("🛡 Threat Analytics")
         st.caption(
             "Threat evolution, override behavior and adaptive security decisions."
@@ -2090,7 +1853,6 @@ with st.expander("📊 Analytics", expanded=False):
                     .value_counts()
                     .reset_index()
                 )
-
                 override_counts.columns = [
                     "Threat Override",
                     "Count"
@@ -2105,12 +1867,10 @@ with st.expander("📊 Analytics", expanded=False):
                         "Normal Decision": "#6b7280"
                     }
                 )
-
                 fig.update_traces(
                     textposition="inside",
                     textinfo="percent+label"
                 )
-
                 fig.update_layout(
                     height=320,
                     margin=dict(
@@ -2126,7 +1886,6 @@ with st.expander("📊 Analytics", expanded=False):
                         x=1.02,
                     )
                 )
-
                 st.plotly_chart(
                     fig,
                     use_container_width=True,

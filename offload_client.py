@@ -17,7 +17,10 @@ from pqc_module import kem_keygen, kem_encrypt, kem_decrypt
 # -----------------------------
 # Edge Server URL
 # -----------------------------
-EDGE_SERVER_URL = "http://127.0.0.1:8000/offload"
+EDGE_SERVER_URL = os.getenv(
+    "EDGE_SERVER_URL",
+    "http://127.0.0.1:8000/offload"
+)
 
 # -----------------------------
 # Results Folder

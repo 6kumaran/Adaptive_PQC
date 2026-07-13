@@ -1,6 +1,6 @@
 import requests
 import base64
-import time
+import time, os
 import uuid
 import copy
 from pqc_module import (
@@ -12,14 +12,17 @@ from pqc_module import (
     classical_sign
 )
 
-EDGE_SERVER_URL = "http://127.0.0.1:8000/offload"
+EDGE_SERVER_URL = os.getenv(
+    "EDGE_SERVER_URL",
+    "http://127.0.0.1:8000/offload"
+)
 
 # ----------------------------------
 # Security Test Modes
 # ----------------------------------
 
 class SecurityTestMode:
-
+    
     NORMAL = "Normal"
 
     REPLAY = "Replay Previous Packet"

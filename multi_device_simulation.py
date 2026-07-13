@@ -3,11 +3,14 @@ from decision_engine import decide_execution
 from ml_decision_engine import ml_decide_execution
 from pqc_module import kyber_keygen, kyber_encrypt, kyber_decrypt
 import requests
-import time
+import time, os
 import random
 from quantum_readiness import calculate_quantum_readiness
 
-EDGE_SERVER_URL = "http://127.0.0.1:8000/offload"
+EDGE_SERVER_URL = os.getenv(
+    "EDGE_SERVER_URL",
+    "http://127.0.0.1:8000/offload"
+)
 
 CONTEXT_PROFILES = [
     "BALANCED",
