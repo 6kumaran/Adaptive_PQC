@@ -23,7 +23,6 @@ joblib==1.5.3
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 kiwisolver==1.5.0
-liboqs-python @ file:///home/kumaran/Adaptive_PQC/liboqs/liboqs-python
 MarkupSafe==3.0.3
 matplotlib==3.10.8
 narwhals==2.19.0
