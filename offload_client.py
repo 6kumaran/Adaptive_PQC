@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import datetime
-from pqc_module import sign_payload
+from pqc_module import resolve_signature_name, sign_payload
 
 from pqc_module import (
     kem_keygen,
@@ -57,7 +57,7 @@ def main():
     security_strategy = decision["security_strategy"]
 
     kem = decision["kem"]
-    signature = decision["signature"]
+    signature = resolve_signature_name(decision["signature"])
     mode = decision["execution"]   # local / edge
 
     print("Device Status:", status)

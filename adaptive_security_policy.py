@@ -16,6 +16,7 @@ Only this file determines:
 """
 
 from context_profiles import get_context_profile
+from pqc_module import resolve_signature_name
 
 SECURITY_POLICY_MATRIX = {
 
@@ -134,19 +135,19 @@ def apply_security_policy(
 
     if security_mode == "performance":
 
-        signature = "Dilithium2"
+        signature = resolve_signature_name("Dilithium2")
 
     elif security_mode == "balanced":
 
-        signature = "Dilithium3"
+        signature = resolve_signature_name("Dilithium3")
 
     else:
 
-        signature = "SPHINCS+-SHAKE-128f-simple"
+        signature = resolve_signature_name("SPHINCS+-SHAKE-128f-simple")
 
     if threat_level == "HIGH":
 
-        signature = "SPHINCS+-SHAKE-128f-simple"
+        signature = resolve_signature_name("SPHINCS+-SHAKE-128f-simple")
 
     return {
 

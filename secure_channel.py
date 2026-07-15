@@ -7,6 +7,7 @@ from pqc_module import (
     kem_keygen,
     kem_encrypt,
     encrypt_message,
+    resolve_signature_name,
     sign_payload,
     classical_keygen,
     classical_sign
@@ -14,7 +15,7 @@ from pqc_module import (
 
 EDGE_SERVER_URL = os.getenv(
     "EDGE_SERVER_URL",
-    "http://127.0.0.1:8000/offload"
+    "http://backend:8000/offload"
 )
 
 # ----------------------------------
@@ -55,8 +56,6 @@ def send_secure_message(message, decision,
 
     end = time.time()
 
-    print(">>> USING UPDATED SECURE_CHANNEL.PY <<<")
-
     return {
     "status": "success",
     "record_type": "secure_channel",
@@ -83,7 +82,7 @@ def send_secure_message(message, decision,
 def _build_secure_packet(message, decision):
 
     kem = decision["kem"]
-    signature = decision["signature"]
+    signature = resolve_signature_name(decision["signature"])
     security_strategy = decision["security_strategy"]
 
     kem_obj, public_key = kem_keygen(kem)
@@ -213,11 +212,17 @@ def _send_packet(payload):
             timeout=10
         )
 
+        print("HTTP Status:", response.status_code)
+        print("Response Text:", response.text)
+
         result = response.json()
 
         return result
 
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()
 
         return {
             "status": "failed",

@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: adaptive-pqc-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: adaptive-pqc-frontend
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    environment:
+      EDGE_SERVER_URL: http://backend:8000/offload
+    volumes:
+      - .:/app
+    restart: unless-stopped

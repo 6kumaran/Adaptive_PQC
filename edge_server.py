@@ -9,6 +9,7 @@ import base64
 
 from pqc_module import (
     decrypt_message,
+    resolve_kem_name,
     verify_payload,
     classical_verify
 )
@@ -50,7 +51,7 @@ class OffloadRequest(BaseModel):
 # Edge PQC Task
 # -----------------------------
 def run_kem_algorithm(kem_name):
-    kem = oqs.KeyEncapsulation(kem_name)
+    kem = oqs.KeyEncapsulation(resolve_kem_name(kem_name))
 
     public_key = kem.generate_keypair()
     ciphertext, secret1 = kem.encap_secret(public_key)
@@ -64,7 +65,6 @@ def run_kem_algorithm(kem_name):
 # -----------------------------
 @app.post("/offload")
 def offload_task(request: OffloadRequest):
-
     start = time.time()
 
     try:
@@ -98,7 +98,11 @@ def offload_task(request: OffloadRequest):
         
         # Only cache valid messages
         seen_message_ids.add(request.message_id)
-        
+
+        print("Received Algorithm:", request.signature_algorithm)
+        print("Ciphertext:", request.ciphertext[:60])
+        print("Signature Length:", len(request.signature))
+        print("Public Key Length:", len(request.public_key))
         verified = verify_payload(
             request.signature_algorithm,
             request.ciphertext.encode(),

@@ -21,7 +21,8 @@ from datetime import timedelta
 from pqc_module import (
     kem_keygen,
     kem_encrypt,
-    kem_decrypt
+    kem_decrypt,
+    resolve_signature_name
 )
 def generate_explanation(status, decision):
     battery = status["battery"]
@@ -64,7 +65,7 @@ def run_execution(decision, battery, cpu, memory):
     execution = decision["execution"]
     mode = decision["mode"]
     kem = decision["kem"]
-    signature = decision["signature"]
+    signature = resolve_signature_name(decision["signature"])
     if execution == "edge":
         start = time.time()
         # Simulated edge execution
@@ -419,7 +420,7 @@ cpu = status["cpu"]
 memory = status["memory"]
 network = status["network"]
 kem = decision["kem"]
-signature = decision["signature"]
+signature = resolve_signature_name(decision["signature"])
 mode = decision["execution"]
 # -----------------------------------
 # Runtime Dashboard

@@ -12,9 +12,92 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from cryptography.exceptions import InvalidSignature
 
+# ----------------------------------------
+# Signature compatibility layer
+# ----------------------------------------
+
+_ENABLED_SIGS = set(oqs.get_enabled_sig_mechanisms())
+
+SIGNATURE_ALIASES = {
+
+    # Dilithium -> ML-DSA
+    "Dilithium2": "ML-DSA-44",
+    "Dilithium3": "ML-DSA-65",
+    "Dilithium5": "ML-DSA-87",
+
+    # SPHINCS+ -> SLH-DSA (PURE variants)
+
+    "SPHINCS+-SHAKE-128f-simple": "SLH_DSA_PURE_SHAKE_128F",
+    "SPHINCS+-SHAKE-128s-simple": "SLH_DSA_PURE_SHAKE_128S",
+
+    "SPHINCS+-SHAKE-192f-simple": "SLH_DSA_PURE_SHAKE_192F",
+    "SPHINCS+-SHAKE-192s-simple": "SLH_DSA_PURE_SHAKE_192S",
+
+    "SPHINCS+-SHAKE-256f-simple": "SLH_DSA_PURE_SHAKE_256F",
+    "SPHINCS+-SHAKE-256s-simple": "SLH_DSA_PURE_SHAKE_256S",
+
+    "SPHINCS+-SHA2-128f-simple": "SLH_DSA_PURE_SHA2_128F",
+    "SPHINCS+-SHA2-128s-simple": "SLH_DSA_PURE_SHA2_128S",
+
+    "SPHINCS+-SHA2-192f-simple": "SLH_DSA_PURE_SHA2_192F",
+    "SPHINCS+-SHA2-192s-simple": "SLH_DSA_PURE_SHA2_192S",
+
+    "SPHINCS+-SHA2-256f-simple": "SLH_DSA_PURE_SHA2_256F",
+    "SPHINCS+-SHA2-256s-simple": "SLH_DSA_PURE_SHA2_256S",
+}
+
+
+
+def resolve_signature_name(name: str) -> str:
+    """
+    Automatically maps old liboqs names to the
+    currently installed implementation.
+    """
+
+    if name in _ENABLED_SIGS:
+        return name
+
+    if name in SIGNATURE_ALIASES:
+        alias = SIGNATURE_ALIASES[name]
+        if alias in _ENABLED_SIGS:
+            return alias
+
+    raise ValueError(
+        f"Signature algorithm '{name}' is unavailable.\n"
+        f"Available algorithms:\n{sorted(_ENABLED_SIGS)}"
+    )
+
+_ENABLED_KEMS = set(oqs.get_enabled_kem_mechanisms())
+
+KEM_ALIASES = {
+
+    "Kyber512": "ML-KEM-512",
+    "Kyber768": "ML-KEM-768",
+    "Kyber1024": "ML-KEM-1024",
+
+    "ML-KEM-512": "ML-KEM-512",
+    "ML-KEM-768": "ML-KEM-768",
+    "ML-KEM-1024": "ML-KEM-1024",
+}
+
+
+def resolve_kem_name(name: str):
+
+    if name in _ENABLED_KEMS:
+        return name
+
+    if name in KEM_ALIASES:
+        alias = KEM_ALIASES[name]
+        if alias in _ENABLED_KEMS:
+            return alias
+
+    raise ValueError(
+        f"KEM '{name}' unavailable.\nAvailable:\n{sorted(_ENABLED_KEMS)}"
+    )
+
 # ---------- Dynamic KEM ----------
 def kem_keygen(kem_name):
-    kem = oqs.KeyEncapsulation(kem_name)
+    kem = oqs.KeyEncapsulation(resolve_kem_name(kem_name))
     public_key = kem.generate_keypair()
     return kem, public_key
 
@@ -29,7 +112,7 @@ def kem_decrypt(kem, ciphertext):
 
 # ---------- SIGNATURE (Dilithium) ----------
 def dilithium_keygen():
-    sig = oqs.Signature("Dilithium2")
+    sig = oqs.Signature(resolve_signature_name("Dilithium2"))
     public_key = sig.generate_keypair()
     return sig, public_key
 
@@ -56,7 +139,7 @@ if __name__ == "__main__":
 
 # ---------- KEM (Kyber / ML-KEM) ----------
 def kyber_keygen():
-    kem = oqs.KeyEncapsulation("Kyber768")
+    kem = oqs.KeyEncapsulation(resolve_kem_name("Kyber768"))
     public_key = kem.generate_keypair()
     return kem, public_key
 
@@ -71,7 +154,7 @@ def kyber_decrypt(kem, ciphertext):
 
 # ---------- SIGNATURE (Dilithium) ----------
 def dilithium_keygen():
-    sig = oqs.Signature("Dilithium2")
+    sig = oqs.Signature(resolve_signature_name("Dilithium2"))
     public_key = sig.generate_keypair()
     return sig, public_key
 
@@ -142,7 +225,7 @@ def decrypt_message(shared_secret, nonce_b64, ciphertext_b64):
 
 def signature_keygen(signature_name):
 
-    signer = oqs.Signature(signature_name)
+    signer = oqs.Signature(resolve_signature_name(signature_name))
 
     public_key = signer.generate_keypair()
 
@@ -151,7 +234,7 @@ def signature_keygen(signature_name):
 
 def sign_payload(signature_name, message_bytes):
 
-    signer = oqs.Signature(signature_name)
+    signer = oqs.Signature(resolve_signature_name(signature_name))
 
     public_key = signer.generate_keypair()
 
@@ -169,17 +252,19 @@ def verify_payload(
         signature_b64,
         public_key_b64):
 
-    verifier = oqs.Signature(signature_name)
+    verifier = oqs.Signature(resolve_signature_name(signature_name))
 
     signature = base64.b64decode(signature_b64)
 
     public_key = base64.b64decode(public_key_b64)
 
-    return verifier.verify(
+    verified = verifier.verify(
         message_bytes,
         signature,
         public_key
     )
+    print("Verification Result:", verified)
+    return verified
 # ----------------------------------------
 # Classical Signatures (ECDSA)
 # ----------------------------------------

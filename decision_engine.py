@@ -4,6 +4,7 @@ import random
 from adaptive_security_policy import apply_security_policy
 from energy_model import estimate_energy
 from latency_model import estimate_latency
+from pqc_module import resolve_signature_name
 def assess_threat(threat_profile="AUTO"):
 
     import random
@@ -152,7 +153,7 @@ def decide_execution(device_status,threat_profile="AUTO",threat_data=None,contex
 
     security_strategy = policy["security_strategy"]
     kem = policy["kem"]
-    signature = policy["signature"]
+    signature = resolve_signature_name(policy["signature"])
 
     latency_optimization = False
     latency_reason = "Latency optimization not applied"
@@ -180,13 +181,13 @@ def decide_execution(device_status,threat_profile="AUTO",threat_data=None,contex
 
                 security_strategy = "PQC"
                 kem = "ML-KEM-768"
-                signature = "Dilithium3"
+                signature = resolve_signature_name("Dilithium3")
 
             elif security_strategy == "PQC":
 
                 security_strategy = "CLASSICAL"
                 kem = "ML-KEM-512"
-                signature = "Dilithium2"
+                signature = resolve_signature_name("Dilithium2")
 
     elif context_profile == "MISSION_CRITICAL":
 

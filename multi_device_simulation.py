@@ -1,7 +1,7 @@
 from iot_device import IoTDevice
 from decision_engine import decide_execution
 from ml_decision_engine import ml_decide_execution
-from pqc_module import kyber_keygen, kyber_encrypt, kyber_decrypt
+from pqc_module import kyber_keygen, kyber_encrypt, kyber_decrypt, resolve_signature_name
 import requests
 import time, os
 import random
@@ -129,7 +129,7 @@ def execute_device(device_id, use_ml=False):
 
     mode = decision["execution"]
     kem = decision["kem"]
-    signature = decision["signature"]
+    signature = resolve_signature_name(decision["signature"])
 
     start = time.time()
 
