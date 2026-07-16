@@ -15,8 +15,23 @@ RUN apt-get update && \
         libssl-dev \
         python3-dev
 
+# --------------------------------------------------------
+# Install liboqs (Official Production Installation)
+# --------------------------------------------------------
+RUN git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs.git /tmp/liboqs && \
+    cd /tmp/liboqs && \
+    mkdir build && \
+    cd build && \
+    cmake -GNinja -DBUILD_SHARED_LIBS=ON .. && \
+    ninja -j1 && \
+    ninja install && \
+    ldconfig && \
+    rm -rf /tmp/liboqs
+
+# --------------------------------------------------------
 # Install liboqs-python
-RUN git clone --branch main https://github.com/open-quantum-safe/liboqs-python.git /tmp/liboqs-python && \
+# --------------------------------------------------------
+RUN git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs-python.git /tmp/liboqs-python && \
     cd /tmp/liboqs-python && \
     pip install . && \
     rm -rf /tmp/liboqs-python
