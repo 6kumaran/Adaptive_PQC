@@ -60,6 +60,15 @@ def run_kem_algorithm(kem_name):
     return secret1 == secret2
 
 
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "message": "Adaptive Secure Edge–Cloud PQC Backend",
+        "service": "Running"
+    }
+
+
 # -----------------------------
 # API Route
 # -----------------------------
